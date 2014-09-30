@@ -95,7 +95,10 @@ class SUT(object):
         else:
             DimReport += str('Use table is not present.<br>')                        
         if self.Y != None:
-            DimReport += str('Final demand is present with ' + str(len(self.Y)) + ' rows (products) and ' + str(len(self.Y[0])) + ' columns (FD categories).<br>')                        
+            if len(self.Y.shape) == 1: # if Y is a true vector
+                DimReport += str('Final demand is present with ' + str(len(self.Y)) + ' rows (products) and 1 column (FD categories).<br>')                        
+            else:
+                DimReport += str('Final demand is present with ' + str(len(self.Y)) + ' rows (products) and ' + str(len(self.Y[0])) + ' columns (FD categories).<br>')                        
         else:
             DimReport += str('Final demand is not present.<br>')                                    
         if self.F != None:
