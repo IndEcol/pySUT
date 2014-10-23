@@ -290,6 +290,7 @@ class KnownResults(unittest.TestCase):
                            [0, 0, 0, 0]])
         npt.assert_array_equal(E_bar0, sut.E_bar)
 
+
     def test_generate_mainproduct_matrix_notsquare(self):
 
         V = np.array([[1.4, 0, 0,  12,  0],
@@ -336,6 +337,55 @@ class KnownResults(unittest.TestCase):
                            [0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0]])
         npt.assert_array_equal(E_bar0, sut.E_bar)
+
+    def test_generate_mainproduct_matrix_negatives(self):
+
+        # native value, should not alter results
+        V = np.array([[1.4, 0, 0,  12,   0],
+                      [5.,  3, 6., 0,    0],
+                      [0,   0, 0,  0.1,  0],
+                      [0,   0, 0,  0,    0],
+                      [0,   0, 0,  -0.2, 0]])
+        sut = SUT(V=V)
+
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[1, 0, 0, 0, 0],
+                           [0, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 1, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+
+    def test_V_bar_tilde(self):
+
+        # Initialize sut
+        V = np.array([[1.4, 0, 0,  12],
+                      [5.,  3, 6., 0],
+                      [0,   0, 0,  0.1],
+                      [0,   0, 0,  0]])
+        E_bar = np.array([[1, 0, 0, 0],
+                          [0, 1, 1, 0],
+                          [0, 0, 0, 1],
+                          [0, 0, 0, 0]])
+        sut = SUT(V=V, E_bar=E_bar)
+
+        # Test V_bar: primary supply flows only
+        V0 = np.array([[1.4, 0, 0,  0],
+                       [0.,  3, 6., 0],
+                       [0,   0, 0,  0.1],
+                       [0,   0, 0,  0]])
+        npt.assert_array_equal(V0, sut.V_bar())
+
+        # Test V_tild: secondary supply flows only
+        V0 = np.array([[0,   0, 0,  12],
+                       [5.,  0, 0,  0],
+                       [0,   0, 0,  0],
+                       [0,   0, 0,  0]])
+        npt.assert_array_equal(V0, sut.V_tild())
+
+
+
 
     def test_aggregate_regions_vectorised_rowsAndColumns(self):
         U = np.arange(54).reshape((9,6))

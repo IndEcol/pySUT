@@ -425,7 +425,7 @@ class SUT(object):
             mask = np.outer(exclusive_product, ~done)
 
             V_exclusive[mask] = self.V[mask]
-            max_in_column = np.argmax(V_exclusive, axis=0)
+            max_in_column = np.argmax(np.abs(V_exclusive), axis=0)
             V_exclusive_max[max_in_column, cols] = V_exclusive[max_in_column, cols]
 
             E_bar[np.array(V_exclusive_max, dtype=bool)] = 1
@@ -433,10 +433,17 @@ class SUT(object):
 
 
         # For each column without a main product, chose the largest supply flow
-        max_in_column = np.argmax(self.V, axis=0)
+        max_in_column = np.argmax(np.abs(self.V), axis=0)
         V_max[max_in_column, cols] = self.V[max_in_column, cols]
         E_bar[:, ~ done] = np.array(np.array(V_max[:, ~done], dtype=bool),dtype=int)
         self.E_bar = E_bar
+
+    def V_bar(self):
+        return self.V * self.E_bar
+
+    def V_tild(self):
+        E_tild = 1 - self.E_bar
+        return self.V * E_tild
 
     def add_ones_to_diagonal(self): 
         """ This method adds ones where there is a zero on the diagonal of V. This is needed for simple applications of the BTC."""
