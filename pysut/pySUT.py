@@ -325,6 +325,27 @@ class SUT(object):
         
         return 'Products and industries were removed successfully.'
              
+    def _remove_empty_diagonal(self):
+        """ If a diagonal entry is null, and the product is never produced, and
+        the industry does not produce anything, just completely remove rows and
+        columns
+        """
+
+        # Based on supply_diag_check, situations where this occurs
+        keep = self.supply_diag_check()[:,4] == 0
+
+        # Remove such empty diagonal combinations of product and industry.
+        self.U = self.U[:, keep][keep, :]
+        self.V = self.V[:, keep][keep, :]
+        try:
+            self.F = self.F[:, keep]
+        except:
+            pass
+
+        try:
+            self.Y = self.Y[keep,:]
+        except:
+            pass
 
     """
     Modify tables
