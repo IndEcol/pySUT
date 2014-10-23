@@ -234,42 +234,30 @@ class SUT(object):
         return 'Products were aggregated. Products and industries were resorted successfully.'       
 
 
-    def _aggregate_regions_vectorised(self, AV, axis=None, inplace=True):
+    def _aggregate_regions_vectorised(self, U,  AV, axis=None):
 
         # Use local variables for this method
-        U = self.U
-        V = self.V
-
         # Generate region correspondence matrix for aggregation
         pos = np.zeros((len(AV), max(AV)), dtype=int)
         pos[np.arange(len(AV)), AV -1 ] = 1
 
         if axis == 0 or axis is None:
             # Generate aggregation matrix
-            prods_per_region = int(V.shape[0]/len(AV))
+            prods_per_region = int(U.shape[0]/len(AV))
             agg = np.kron(pos, np.eye(prods_per_region, dtype=int))
 
             # Aggregate rows
-            V = agg.T.dot(V)
             U = agg.T.dot(U)
 
         if axis == 1 or axis is None:
             # Generate aggregation matrix
-            prods_per_region = int(V.shape[1]/len(AV))
+            prods_per_region = int(U.shape[1]/len(AV))
             agg = np.kron(pos, np.eye(prods_per_region, dtype=int))
 
             # Aggregate columns
-            V = V.dot(agg)
             U = U.dot(agg)
 
-        if inplace:
-            self.U = U
-            self.V = V
-        else:
-            logging.warning("As of now, this hidden function only handles supply"
-                   " and use tables. Other variables in SUT object not"
-                   " affected")
-            return U, V
+        return U
 
 
 
@@ -597,4 +585,4 @@ class SUT(object):
         
 """
 End of file
-"""        
+"""
