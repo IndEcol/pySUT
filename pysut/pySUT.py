@@ -33,7 +33,7 @@ import numpy as np
 
 # check for correct version number
 if sys.version_info.major < 3: 
-    logging.warn('This package requires Python 3.0 or higher.')
+    logging.warning('This package requires Python 3.0 or higher.')
 
 class SUT(object):
     """ Class containing a complete supply and use table
@@ -232,7 +232,49 @@ class SUT(object):
             self.TL  = np.dot(PR,np.dot(PA,self.TL))
 
         return 'Products were aggregated. Products and industries were resorted successfully.'       
-        
+
+
+    def _aggregate_regions_vectorised(self, AV, axis=None, inplace=True):
+
+        # Use local variables for this method
+        U = self.U
+        V = self.V
+
+        # Generate region correspondence matrix for aggregation
+        pos = np.zeros((len(AV), max(AV)), dtype=int)
+        pos[np.arange(len(AV)), AV -1 ] = 1
+
+        if axis == 0 or axis is None:
+            # Generate aggregation matrix
+            prods_per_region = int(V.shape[0]/len(AV))
+            agg = np.kron(pos, np.eye(prods_per_region, dtype=int))
+
+            # Aggregate rows
+            V = agg.T.dot(V)
+            U = agg.T.dot(U)
+
+        if axis == 1 or axis is None:
+            # Generate aggregation matrix
+            prods_per_region = int(V.shape[1]/len(AV))
+            agg = np.kron(pos, np.eye(prods_per_region, dtype=int))
+
+            # Aggregate columns
+            V = V.dot(agg)
+            U = U.dot(agg)
+
+        if inplace:
+            self.U = U
+            self.V = V
+        else:
+            logging.warning("As of now, this hidden function only handles supply"
+                   " and use tables. Other variables in SUT object not"
+                   " affected")
+            return U, V
+
+
+
+
+
     def aggregate_regions(self,AV):
         """ This method aggregates the supply and use table. The length of the vector AV sais how many regions there are in the model. The total number of products and industries must be a multiple of that number, else, an error is given.
         Then, the SUT is summed up according to the positions in AV. if AV[n] == x, then region n in the big SUT is aggregated into region x

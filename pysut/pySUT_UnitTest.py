@@ -337,5 +337,54 @@ class KnownResults(unittest.TestCase):
                            [0, 0, 0, 0, 0]])
         npt.assert_array_equal(E_bar0, sut.E_bar)
 
+    def test_aggregate_regions_vectorised_rowsAndColumns(self):
+        U = np.arange(54).reshape((9,6))
+        V = U.copy()
+        av = np.array([1,2,2])
+        sut = SUT(U=U,V=V)
+
+        Uout, Vout = sut._aggregate_regions_vectorised(av, axis=0, inplace=False)
+        U0 = np.array([[ 0,  1,  2,  3,  4,  5],
+                       [ 6,  7,  8,  9, 10, 11],
+                       [12, 13, 14, 15, 16, 17],
+                       [54, 56, 58, 60, 62, 64],
+                       [66, 68, 70, 72, 74, 76],
+                       [78, 80, 82, 84, 86, 88]])
+        npt.assert_array_equal(U0, Uout)
+
+        Uout, Vout = sut._aggregate_regions_vectorised(av, axis=1, inplace=False)
+        V0 = np.array([[  0,   1,   6,   8],
+                       [  6,   7,  18,  20],
+                       [ 12,  13,  30,  32],
+                       [ 18,  19,  42,  44],
+                       [ 24,  25,  54,  56],
+                       [ 30,  31,  66,  68],
+                       [ 36,  37,  78,  80],
+                       [ 42,  43,  90,  92],
+                       [ 48,  49, 102, 104]])
+        npt.assert_array_equal(V0, Vout)
+
+
+    def test_aggregate_regions_vectorised_bothAxes(self):
+        U = np.arange(54).reshape((9,6))
+        V = U.copy()
+        av = np.array([1,2,2])
+        sut = SUT(U=U,V=V)
+
+        # Test aggregation of both axes
+        Uout, Vout = sut._aggregate_regions_vectorised(av, inplace=False)
+        U0 = np.array([[  0,   1,   6,   8],
+                       [  6,   7,  18,  20],
+                       [ 12,  13,  30,  32],
+                       [ 54,  56, 120, 124],
+                       [ 66,  68, 144, 148],
+                       [ 78,  80, 168, 172]])
+        npt.assert_array_equal(U0, Uout)
+
+        # Having tested this, test that this same modification can be done
+        # "inplace"
+        sut._aggregate_regions_vectorised(av)
+        npt.assert_array_equal(U0, sut.U)
+
     if __name__ == '__main__':
         unittest.main()
