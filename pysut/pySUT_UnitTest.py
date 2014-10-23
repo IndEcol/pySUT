@@ -6,6 +6,7 @@ Created on Mon Aug 11 16:19:39 2014
 """
 
 import numpy as np
+import numpy.testing as npt
 # import pylab
 from pySUT import SUT
 import unittest
@@ -267,6 +268,74 @@ class KnownResults(unittest.TestCase):
         np.testing.assert_array_equal(mySUT5.V,V_res)   
         np.testing.assert_array_equal(mySUT5.Y,Y_res)         
         np.testing.assert_array_equal(mySUT5.F,F_res)         
-                
+
+    def test_generate_mainproduct_matrix_simpleExclusiveProd(self):
+
+        V = np.array([[1.4, 0, 0,  12],
+                      [5.,  3, 6., 0],
+                      [0,   0, 0,  0.1],
+                      [0,   0, 0,  0]])
+        sut = SUT(V=V)
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[1, 0, 0, 0],
+                           [0, 1, 1, 0],
+                           [0, 0, 0, 1],
+                           [0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        sut.generate_mainproduct_matrix(prefer_exclusive=False)
+        E_bar0 = np.array([[1, 0, 0, 1],
+                           [0, 1, 1, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+    def test_generate_mainproduct_matrix_notsquare(self):
+
+        V = np.array([[1.4, 0, 0,  12,  0],
+                      [5.,  3, 6., 0,   0],
+                      [0,   0, 0,  0.1, 0],
+                      [0,   0, 0,  0,   0]])
+        sut = SUT(V=V)
+
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[0, 0, 0, 0, 0],
+                           [1, 1, 1, 0, 0],
+                           [0, 0, 0, 1, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        sut.generate_mainproduct_matrix(prefer_exclusive=False)
+        E_bar0 = np.array([[0, 0, 0, 1, 0],
+                           [1, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+    def test_generate_mainproduct_matrix_multipleExclusive(self):
+
+        V = np.array([[1.4, 0, 0,  12,  0],
+                      [5.,  3, 6., 0,   0],
+                      [0,   0, 0,  0.1, 0],
+                      [0,   0, 0,  0,   0],
+                      [0,   0, 0,  0.2, 0]])
+        sut = SUT(V=V)
+
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[1, 0, 0, 0, 0],
+                           [0, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 1, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        sut.generate_mainproduct_matrix(prefer_exclusive=False)
+        E_bar0 = np.array([[1, 0, 0, 1, 0],
+                           [0, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
     if __name__ == '__main__':
         unittest.main()

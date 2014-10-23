@@ -56,6 +56,10 @@ class SUT(object):
     name : string, optional
         Name of the SUT, default is 'SUT'
 
+    E_bar : Mapping of primary production
+            + product-by-industry matrix of integers
+            + coefficient 1 to indicate primary product and 0 otherwise
+
    
     """
     
@@ -64,7 +68,7 @@ class SUT(object):
     """    
 
     def __init__(self, V = None, U = None, Y = None, F = None, FY = None, TL = None,
-            unit = None, version = None, year = None, name = 'SUT'):
+            unit = None, version = None, year = None, name = 'SUT', E_bar=None):
         """ Init function """
         self.V = V # mandatory
         self.U = U # mandatory
@@ -77,6 +81,8 @@ class SUT(object):
         self.unit = unit  # optional       
         self.year = year  # optional
         self.version = version  # optional
+
+        self.E_bar = E_bar # optional
         
     def return_version_info(self):
         return str('Class SUT. Version 0.1. Last change: September 24th, 2014.')            
@@ -322,8 +328,65 @@ class SUT(object):
 
     """
     Modify tables
-    """ 
-        
+    """
+
+    def generate_mainproduct_matrix(self, prefer_exclusive=True):
+        """ Determine E_bar based on V, indentifying each primary supply flow
+
+        Makes a best guess at the primary production flow of each industry. If
+        a supply flow is found on the diagonal of the supply matrix (V) pick
+        this one.  Otherwise, by default, give the preference to any product
+        that is exclusive to this industry, i.e. a product that is not produced
+        by any other industry.  For all the rest, pick the biggest supply flows
+        of each industry.
+
+        prefer_exclusive: Default True. If false, always pick the largest
+            supply flow as the primary product, even if this means creating
+            more exclusive byproducts.
+        """
+
+
+        # Initialize zero arrays
+        V_exclusive = np.zeros_like(self.V)
+        V_exclusive_max = np.zeros_like(self.V)
+        V_max = np.zeros_like(self.V)
+
+        # column numbers
+        cols = np.arange(self.V.shape[1])
+
+        # If square, assume that diagonal is mainproduct whenever not null
+        # Otherwise, don't assume anything
+        if self.V.shape[0] == self.V.shape[1]:
+            done = np.array(np.diag(self.V), dtype=bool)
+            E_bar = np.array(np.diag(done), dtype=int)
+        else:
+            E_bar = np.zeros_like(self.V, dtype=int)
+            done = np.sum(E_bar,0) != 0
+
+        if prefer_exclusive:
+            # For all other industries, if sole producer of product, make that
+            # product the main product
+
+            # Filters for exclusive products and exclusive productions of
+            # interest
+            V_binary = np.array(np.array(self.V, dtype=bool), dtype=int)
+            exclusive_product = np.sum(V_binary, 1) == 1
+            mask = np.outer(exclusive_product, ~done)
+
+            V_exclusive[mask] = self.V[mask]
+            max_in_column = np.argmax(V_exclusive, axis=0)
+            V_exclusive_max[max_in_column, cols] = V_exclusive[max_in_column, cols]
+
+            E_bar[np.array(V_exclusive_max, dtype=bool)] = 1
+            done = np.sum(E_bar,0) != 0
+
+
+        # For each column without a main product, chose the largest supply flow
+        max_in_column = np.argmax(self.V, axis=0)
+        V_max[max_in_column, cols] = self.V[max_in_column, cols]
+        E_bar[:, ~ done] = np.array(np.array(V_max[:, ~done], dtype=bool),dtype=int)
+        self.E_bar = E_bar
+
     def add_ones_to_diagonal(self): 
         """ This method adds ones where there is a zero on the diagonal of V. This is needed for simple applications of the BTC."""
         if self.V.shape[0] != self.V.shape[1]:
