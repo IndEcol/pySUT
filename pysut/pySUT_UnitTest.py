@@ -480,7 +480,33 @@ class KnownResults(unittest.TestCase):
 
         npt.assert_array_equal(D0,D)
 
+    def test_generate_Xi_square3regions(self):
 
+        E_bar = np.array([[1, 0, 0, 0, 0, 0],
+                          [0, 1, 0, 0, 0, 0],
+                          [0, 0, 1, 1, 0, 0],
+                          [0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 1, 0],
+                          [0, 0, 0, 0, 0, 1]])
+
+        V = np.array([[9., 0., 0., 0., 0., 0.],    # i
+                      [3., 3., 0., 0., 0., 0.],    # j
+                      [0., 0., 4., 4., 0., 0.],    # i
+                      [0., 0., 0., 0., 0., 0.],    # j  <-- no prod of j in region
+                      [0., 0., 0., 0., 2., 0.],    # i
+                      [0., 0., 0., 0., 1., 2.]])   # j
+
+        Xi0 = np.array([[1, 0, 0, 0,   0, 0],
+                        [0, 1, 0, 3/5, 0, 0],
+                        [0, 0, 1, 0,   0, 0],
+                        [0, 0, 0, 0,   0, 0],
+                        [0, 0, 0, 0,   1, 0],
+                        [0, 0, 0, 2/5, 0, 1]])
+
+        sut = SUT(V=V, E_bar=E_bar, regions=3)
+        sut.multiregion_Xi()
+
+        npt.assert_allclose(Xi0, sut.Xi)
 
 
     if __name__ == '__main__':

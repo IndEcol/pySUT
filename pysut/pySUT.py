@@ -73,7 +73,7 @@ class SUT(object):
 
     def __init__(self, V = None, U = None, Y = None, F = None, FY = None, TL = None,
             unit = None, version = None, year = None, name = 'SUT',
-            regions=None, E_bar=None):
+            regions=None, E_bar=None, Xi=None):
         """ Init function """
         self.V = V # mandatory
         self.U = U # mandatory
@@ -89,6 +89,7 @@ class SUT(object):
         self.version = version  # optional
 
         self.E_bar = E_bar # optional
+        self.Xi = Xi
         
     def return_version_info(self):
         return str('Class SUT. Version 0.1. Last change: September 24th, 2014.')            
@@ -282,7 +283,6 @@ class SUT(object):
             X
 
         """
-
         if axis == 0 or axis is None:
             # Generate aggregation matrix
             entries_per_regions = int(X.shape[0] / self.regions)
@@ -524,6 +524,55 @@ class SUT(object):
         D = Vagg.T.dot(mt.diaginv(q_bar))
 
         return D
+
+    def multiregion_Xi(self):
+        """ Define Product subtitutability matrix for multiregional system
+
+        By default, products displace identica products produced in the same
+        region. If all products were produced as primary product in all
+        regions, the Xi matrix would be an identity matrix.
+
+        Otherwise, if a product is only produced as a secondary product in a
+        region, make this product substitute average primary production mix.
+
+        Dependencies
+        ------------
+            self.E_bar to indicate primary production
+
+        Returns
+        -------
+            self.Xi: a product*regions-by-product*region, square matrix
+
+        """
+
+        # By default secondary production substitutes identical product from
+        # primary production in the same region
+        e_bar = np.array(np.array(np.sum(self.E_bar, 1), bool), int)
+        Xi = np.diag(e_bar)
+
+        # When no local primary production to substitute, turn to global
+        # primary mix
+        D = self.primary_market_shares_of_regions()
+
+        # Rearrange mix data in a region_product-by-product table
+        global_mix = np.array([]).reshape(0, D.shape[1])
+        for row in D:
+            global_mix = np.vstack([global_mix, np.diag(row)])
+
+        # Then tile to get same dimensions as Xi, and filter out columns where
+        # Xi already has a coefficient. This gives the completementary
+        # situations where the average global mix (rather than the local
+        # production) get substituted
+        Xi_glob = np.tile(global_mix, self.regions) * (1 - e_bar).T
+
+        # TODO: check if there are economy-wide exclusive secondary products
+        #
+        # For now assume everything gets primarily produced by somebody
+        # somewhere
+
+        # Put all together and return to self
+        self.Xi = Xi + Xi_glob
+
 
 
     def add_ones_to_diagonal(self): 
