@@ -429,5 +429,37 @@ class KnownResults(unittest.TestCase):
                        [ 78,  80, 168, 172]])
         npt.assert_array_equal(U0, Uout)
 
+    def test_aggregation_within_regions(self):
+
+        sut = SUT(U=np.arange(54).reshape((3*3, 3*2)), regions=3)
+
+        Uout = sut.aggregate_within_regions(sut.U, axis=0)
+        U0 = np.array([[  18.,   21.,   24.,   27.,   30.,   33.],
+                       [  72.,   75.,   78.,   81.,   84.,   87.],
+                       [ 126.,  129.,  132.,  135.,  138.,  141.]])
+        npt.assert_array_equal(U0, Uout)
+
+
+        Uout = sut.aggregate_within_regions(sut.U, axis=1)
+        U1 = np.array([[   1.,    5.,    9.],
+                       [  13.,   17.,   21.],
+                       [  25.,   29.,   33.],
+                       [  37.,   41.,   45.],
+                       [  49.,   53.,   57.],
+                       [  61.,   65.,   69.],
+                       [  73.,   77.,   81.],
+                       [  85.,   89.,   93.],
+                       [  97.,  101.,  105.]])
+        npt.assert_array_equal(U1, Uout)
+
+
+        Uout = sut.aggregate_within_regions(sut.U)
+        U2 = np.array([[  39.,   51.,   63.],
+                       [ 147.,  159.,  171.],
+                       [ 255.,  267.,  279.]])
+        npt.assert_array_equal(U2, Uout)
+
+
+
     if __name__ == '__main__':
         unittest.main()

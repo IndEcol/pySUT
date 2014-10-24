@@ -68,7 +68,8 @@ class SUT(object):
     """    
 
     def __init__(self, V = None, U = None, Y = None, F = None, FY = None, TL = None,
-            unit = None, version = None, year = None, name = 'SUT', E_bar=None):
+            unit = None, version = None, year = None, name = 'SUT',
+            regions=None, E_bar=None):
         """ Init function """
         self.V = V # mandatory
         self.U = U # mandatory
@@ -78,6 +79,7 @@ class SUT(object):
         self.TL= TL# optional
        
         self.name = name  # optional
+        self.regions = regions # Number of regions, for multiregional SUT
         self.unit = unit  # optional       
         self.year = year  # optional
         self.version = version  # optional
@@ -234,7 +236,7 @@ class SUT(object):
         return 'Products were aggregated. Products and industries were resorted successfully.'       
 
 
-    def _aggregate_regions_vectorised(self, U,  AV, axis=None):
+    def _aggregate_regions_vectorised(self, X,  AV, axis=None):
 
         # Use local variables for this method
         # Generate region correspondence matrix for aggregation
@@ -243,22 +245,59 @@ class SUT(object):
 
         if axis == 0 or axis is None:
             # Generate aggregation matrix
-            prods_per_region = int(U.shape[0]/len(AV))
-            agg = np.kron(pos, np.eye(prods_per_region, dtype=int))
+            entries_per_region = int(X.shape[0]/len(AV))
+            agg = np.kron(pos, np.eye(entries_per_region, dtype=int))
 
             # Aggregate rows
-            U = agg.T.dot(U)
+            X = agg.T.dot(X)
 
         if axis == 1 or axis is None:
             # Generate aggregation matrix
-            prods_per_region = int(U.shape[1]/len(AV))
-            agg = np.kron(pos, np.eye(prods_per_region, dtype=int))
+            entries_per_region = int(X.shape[1]/len(AV))
+            agg = np.kron(pos, np.eye(entries_per_region, dtype=int))
 
             # Aggregate columns
-            U = U.dot(agg)
+            X = X.dot(agg)
 
-        return U
+        return X
 
+    def aggregate_within_regions(self, X, axis=None):
+        """ Aggregate the products or industries within each regions for mrSUT
+
+        For multi-regional SUT, aggregate rows, columns or both such that
+        there remains only one entry per region along chosen axis. The number
+        of regions is specified by self.regions.
+
+        Args
+        ----
+            X: a numpy array of appropriate dimensions
+            axis: 0 to aggregate rows, 1 for columns, None for all.
+                  + default: None
+        Returns
+        -------
+            X
+
+        """
+
+        if axis == 0 or axis is None:
+            # Generate aggregation matrix
+            entries_per_regions = int(X.shape[0] / self.regions)
+            e = np.ones((entries_per_regions, 1))
+            agg = np.kron(np.eye(self.regions), e)
+
+            # Aggregate rows to one entry per region
+            X = agg.T.dot(X)
+
+        if axis == 1 or axis is None:
+            # Generate aggregation matrix
+            entries_per_regions = int(X.shape[1] / self.regions)
+            e = np.ones((entries_per_regions, 1))
+            agg = np.kron(np.eye(self.regions), e)
+
+            # Aggregate columns to one entry per region
+            X = X.dot(agg)
+
+        return X
 
 
 
