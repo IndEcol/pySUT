@@ -27,6 +27,10 @@ import sys
 import logging
 # import string
 import numpy as np
+sys.path.append('/home/bill/software/Python/Modules')
+import math_tools as mt
+
+import IPython
 # import pandas as pd
 # import scipy.sparse.linalg as slinalg
 # import scipy.sparse as sparse
@@ -241,7 +245,7 @@ class SUT(object):
         # Use local variables for this method
         # Generate region correspondence matrix for aggregation
         pos = np.zeros((len(AV), max(AV)), dtype=int)
-        pos[np.arange(len(AV)), AV -1 ] = 1
+        pos[np.arange(len(AV)), AV - 1 ] = 1
 
         if axis == 0 or axis is None:
             # Generate aggregation matrix
@@ -483,6 +487,44 @@ class SUT(object):
     def V_tild(self):
         E_tild = 1 - self.E_bar
         return self.V * E_tild
+
+    def primary_market_shares_of_regions(self):
+        """ Calculate a region's share in each product's global primary supply
+
+        For each object type, calculate the fraction that each region
+        represents in its primary supply (secondary supply, as defined by
+        E_tild, is excluded)
+
+        Dependencies:
+        -------------
+            self.V
+            self.E_bar
+            self.regions
+
+        Returns
+        -------
+            D: region-per-product_type matrix, with market share coefficients
+                + Each column must add up to 1 (or zero if no production)
+
+        """
+
+
+        # Aggregate primary supply within each region, across industries
+        V_bar = self.V_bar()
+        Vagg = self.aggregate_within_regions(V_bar, axis=1)
+
+        # Aggregate primary supply within each product group, across regions
+        e = np.ones(self.regions, dtype=int)
+        Vagg = self._aggregate_regions_vectorised(Vagg, e,  axis=0)
+
+        # world-wide primary production of each product
+        q_bar = np.sum(Vagg, 1)
+
+        # Normalize regional production relative to total world production
+        D = Vagg.T.dot(mt.diaginv(q_bar))
+
+        return D
+
 
     def add_ones_to_diagonal(self): 
         """ This method adds ones where there is a zero on the diagonal of V. This is needed for simple applications of the BTC."""

@@ -459,6 +459,28 @@ class KnownResults(unittest.TestCase):
                        [ 255.,  267.,  279.]])
         npt.assert_array_equal(U2, Uout)
 
+    def test_primary_market_shares_of_regions(self):
+
+        V = np.array([[10.,  0.,  0.,  0.1  ],
+                      [0.,   20., 0.,  0.   ],
+                      [0.,   0.,  5.,  10.  ],
+                      [0.1,  0.,  0.,  0.   ]])
+
+        E_bar = np.array([[1, 0, 0, 0],
+                          [0, 1, 0, 0],
+                          [0, 0, 1, 1],
+                          [0, 0, 0, 0]])
+
+        sut = SUT(V=V, E_bar=E_bar, regions=2)
+
+        D = sut.primary_market_shares_of_regions()
+
+        D0 = np.array([[ 0.4,  1. ],
+                       [ 0.6,  0. ]])
+
+        npt.assert_array_equal(D0,D)
+
+
 
 
     if __name__ == '__main__':
