@@ -78,17 +78,17 @@ class SupplyUseTable(object):
         """
         # Compile a little report on the presence and dimensions of the elements in the SUT
         DimReport = str('<br><b> Checking dimensions of SUT structure</b><br>')
-        if self.V != None:
+        if self.V is not None:
             DimReport += str('Supply table is present with ' + str(len(self.V)) +
                              ' rows (products) and ' + str(len(self.V[0])) + ' columns (industries).<br>')
         else:
             DimReport += str('Supply table is not present.<br>')
-        if self.U != None:
+        if self.U is not None:
             DimReport += str('Use table is present with ' + str(len(self.U)) +
                              ' rows (products) and ' + str(len(self.U[0])) + ' columns (industries).<br>')
         else:
             DimReport += str('Use table is not present.<br>')
-        if self.Y != None:
+        if self.Y is not None:
             if len(self.Y.shape) == 1:  # if Y is a true vector
                 DimReport += str('Final demand is present with ' + str(len(self.Y)) +
                                  ' rows (products) and 1 column (FD categories).<br>')
@@ -97,17 +97,17 @@ class SupplyUseTable(object):
                                  ' rows (products) and ' + str(len(self.Y[0])) + ' columns (FD categories).<br>')
         else:
             DimReport += str('Final demand is not present.<br>')
-        if self.F != None:
+        if self.F is not None:
             DimReport += str('Industry extensions are present with ' + str(len(self.F)) +
                              ' rows (stressors) and ' + str(len(self.F[0])) + ' columns (industries).<br>')
         else:
             DimReport += str('Industry extensions are not present.<br>')
-        if self.FY != None:
+        if self.FY is not None:
             DimReport += str('FD extensions are present with ' + str(len(self.FY)) +
                              ' rows (stressors) and ' + str(len(self.FY[0])) + ' columns (FD categories).<br>')
         else:
             DimReport += str('FD extensions are not present.<br>')
-        if self.TL != None:
+        if self.TL is not None:
             DimReport += str('Trade link is present with ' + str(len(self.TL)) +
                              ' rows (products) and ' + str(len(self.TL[0])) + ' columns (regions).<br>')
         else:
@@ -115,8 +115,8 @@ class SupplyUseTable(object):
 
         # for most operations, especially the constructs, U and V are required to
         # be present and have correct dimensions. We check for this:
-        if self.U != None:
-            if self.V != None:
+        if self.U is not None:
+            if self.V is not None:
                 if len(self.V) == len(self.U):
                     if len(self.V[0]) == len(self.U[0]):
                         StatusFlag = 1  # V and U have proper dimensions
@@ -201,7 +201,7 @@ class SupplyUseTable(object):
 
     def market_balance(self):
         """ Returns the market balance of the SUT."""
-        if self.Y != None:
+        if self.Y is not None:
             if len(self.Y.shape) == 1:  # if Y is a true vector
                 return self.V.sum(axis=1) - self.U.sum(axis=1) - self.Y
             else:  # if Y is an array
@@ -222,12 +222,12 @@ class SupplyUseTable(object):
         """
         self.V = np.dot(PR, np.dot(np.dot(PA, self.V), PR.transpose()))
         self.U = np.dot(PR, np.dot(np.dot(PA, self.U), PR.transpose()))
-        if self.Y != None:
+        if self.Y is not None:
             self.Y = np.dot(PR, np.dot(PA, self.Y))
-        if self.F != None:
+        if self.F is not None:
             self.F = np.dot(self.F, PR.transpose())
         # No changes apply to FY
-        if self.TL != None:
+        if self.TL is not None:
             self.TL = np.dot(PR, np.dot(PA, self.TL))
 
         return 'Products were aggregated. Products and industries were resorted successfully.'
@@ -278,7 +278,7 @@ class SupplyUseTable(object):
                                     AV[m] - 1) * FDPerRegion + FDPerRegion] + YIM[:, m * FDPerRegion:m * FDPerRegion + FDPerRegion]
                                 NewF[:, (AV[m] - 1) * IndusPerRegion:(AV[m] - 1) * IndusPerRegion + IndusPerRegion] = NewF[:, (AV[m] - 1) * IndusPerRegion:(
                                     AV[m] - 1) * IndusPerRegion + IndusPerRegion] + self.F[:, m * IndusPerRegion:m * IndusPerRegion + IndusPerRegion]
-                                if self.FY != None:  # if we have findal demand extensions
+                                if self.FY is not None:  # if we have findal demand extensions
                                     NewFY[:, (AV[m] - 1) * FDPerRegion:(AV[m] - 1) * FDPerRegion + FDPerRegion] = NewFY[:, (AV[m] - 1) * FDPerRegion:(
                                         AV[m] - 1) * FDPerRegion + FDPerRegion] + self.FY[:, m * FDPerRegion:m * FDPerRegion + FDPerRegion]
                             # assign the new values to the object
@@ -287,7 +287,7 @@ class SupplyUseTable(object):
                             self.Y = NewY
                             self.F = NewF
                             self.FY = NewFY
-                            if self.TL != None:  # Special case: If a trade link is present:
+                            if self.TL is not None:  # Special case: If a trade link is present:
                                 NewTL = np.zeros((ProdsPerRegion * max(AV), max(AV)))
                                 TL_IM = np.zeros((ProdsPerRegion * max(AV), len(AV)))
                                 # First, aggregate the origin regions:
@@ -326,10 +326,10 @@ class SupplyUseTable(object):
         for x in RPV:
             self.U[x, :] = 0
             self.V[x, :] = 0
-            if self.Y != None:
+            if self.Y is not None:
                 self.Y[x, :] = 0
             # No changes to FY
-            if self.TL != None:
+            if self.TL is not None:
                 # This might be problematic, since some methods require T to have at least
                 # a 1 on the diagonal
                 self.TL[x, :] = 0
