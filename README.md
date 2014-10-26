@@ -21,7 +21,6 @@ sys.path.append(Package_Path)
 
 import pySUT
 imp.reload(pySUT)
-from pySUT import SUT  
+from pySUT import SUT
 
-<b>Installation and a short tutorial:</b><br>
 http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb
