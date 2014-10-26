@@ -5,7 +5,7 @@ Created on Mon Aug 11 16:19:39 2014
 @author: Stefan Pauliuk, NTNU
 """
 
-from .. import SUT
+from .. import SupplyUseTable
 import numpy as np
 import unittest
 
@@ -199,19 +199,19 @@ F_res = np.array([[5, 30, 7, 22.03, 18],
 ###############################################################################
 """Create Dynamic Stock Models and hand over the pre-defined values."""
 # For fixed LT
-mySUT = SUT(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
+mySUT = SupplyUseTable(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
 
-mySUT2 = SUT(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
+mySUT2 = SupplyUseTable(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
 mySUT2.clear_non_diag_supply()
 
-mySUT3 = SUT(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
+mySUT3 = SupplyUseTable(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
 mySUT3.clear_non_diag_supply()
 mySUT3.add_ones_to_diagonal()
 
-mySUT4 = SUT(V=V_Testx.copy(), U=U_Testx.copy(), Y=Y_Testx.copy(), F=F_Testx.copy())
+mySUT4 = SupplyUseTable(V=V_Testx.copy(), U=U_Testx.copy(), Y=Y_Testx.copy(), F=F_Testx.copy())
 mySUT4.aggregate_rearrange_products(PA, np.eye(5))
 
-mySUT5 = SUT(V=V_Testx.copy(), U=U_Testx.copy(), Y=Y_Testx.copy(), F=F_Testx.copy())
+mySUT5 = SupplyUseTable(V=V_Testx.copy(), U=U_Testx.copy(), Y=Y_Testx.copy(), F=F_Testx.copy())
 mySUT5.aggregate_rearrange_products(PA, PR)
 ###############################################################################
 """Unit Test Class"""

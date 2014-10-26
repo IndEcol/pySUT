@@ -16,9 +16,8 @@ How to load this class:
 - add class folder to system path
 sys.path.append(Package_Path)
 
-import pySUT
-imp.reload(pySUT)
-from pySUT import SUT
+import pysut
+from pysut import SupplyUseTable
 
 """
 
@@ -31,7 +30,7 @@ if sys.version_info.major < 3:
     logging.warn('This package requires Python 3.0 or higher.')
 
 
-class SUT(object):
+class SupplyUseTable(object):
 
     """ Class containing a complete supply and use table
 
