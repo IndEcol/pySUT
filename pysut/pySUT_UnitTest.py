@@ -219,7 +219,48 @@ mySUT5.aggregate_rearrange_products(PA,PR)
 ###############################################################################
 """Unit Test Class"""
 class KnownResults(unittest.TestCase):    
-        
+    def setUp(self):
+        # Case 0: 3 regions, 2 industries, 2 products (square) 
+        self.V_3r2i2p = np.array(
+                      #I   J     I   J       I   J
+                     [[9., 0.,   0., 0.,     0., 0.],    # i
+                      [3., 3.,   0., 0.,     0., 0.],    # j
+                                                         #
+                      [0., 0.,   4., 4.,     0., 0.],    # i
+                      [0., 0.,   0., 0.,     0., 0.],    # j  <-- no production
+                                                         #
+                      [0., 0.,   0., 0.,     2., 0.],    # i
+                      [0., 0.,   0., 0.,     1., 2.]])   # j
+                     #               ^
+                     #               |
+                     #               "Fake J", does not produce j, prim prod i
+
+        self.E_bar_3r2i2p = np.array(
+                         [[1, 0, 0, 0, 0, 0],
+                          [0, 1, 0, 0, 0, 0],
+                          [0, 0, 1, 1, 0, 0],
+                          [0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 1, 0],
+                          [0, 0, 0, 0, 0, 1]])
+
+        # Case 1: 3 regions, 2 industries, 2 products:
+        #--------------------------------------------
+
+        self.Vmr = np.array([
+                         #   Ca   Ca     No   No     US   US
+                         #   I    J      I    J      I    J
+                         [   4.,  0.,    0.,  0.,    0.,  0.,  ],     #i  Ca
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  Ca
+                         [   0.,  3.,    0.,  0.,    0.,  0.,  ],     #k  Ca
+                         #
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #i  No
+                         [   0.,  0.,    3.,  0.,    0.,  0.,  ],     #j  No
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #k  No
+                         #
+                         [   0.,  0.,    0.,  0.,    8.,  0.,  ],     #i  US
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  US
+                         [   0.,  0.,    0.,  0.,    0.,  9.,  ]])    #k  US
+
     def test_SUT_balances(self):
         """Test simple balances of SUT"""
         np.testing.assert_array_almost_equal(mySUT.compare_IndustrialUseAndSupply(),IndSupply_Use,9)
@@ -482,32 +523,43 @@ class KnownResults(unittest.TestCase):
 
     def test_generate_Xi_square3regions(self):
 
-        E_bar = np.array([[1, 0, 0, 0, 0, 0],
-                          [0, 1, 0, 0, 0, 0],
-                          [0, 0, 1, 1, 0, 0],
-                          [0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 1, 0],
-                          [0, 0, 0, 0, 0, 1]])
+                        #i  j    i  j       i  j
+        Xi0 = np.array([[1, 0,   0, 0,      0, 0],       #i
+                        [0, 1,   0, 3/5,    0, 0],       #j
+                                                         #
+                        [0, 0,   1, 0,      0, 0],       #i
+                        [0, 0,   0, 0,      0, 0],       #j
+                                                         #
+                        [0, 0,   0, 0,      1, 0],       #i
+                        [0, 0,   0, 2/5,    0, 1]])      #j
 
-        V = np.array([[9., 0., 0., 0., 0., 0.],    # i
-                      [3., 3., 0., 0., 0., 0.],    # j
-                      [0., 0., 4., 4., 0., 0.],    # i
-                      [0., 0., 0., 0., 0., 0.],    # j  <-- no prod of j in region
-                      [0., 0., 0., 0., 2., 0.],    # i
-                      [0., 0., 0., 0., 1., 2.]])   # j
-
-        Xi0 = np.array([[1, 0, 0, 0,   0, 0],
-                        [0, 1, 0, 3/5, 0, 0],
-                        [0, 0, 1, 0,   0, 0],
-                        [0, 0, 0, 0,   0, 0],
-                        [0, 0, 0, 0,   1, 0],
-                        [0, 0, 0, 2/5, 0, 1]])
-
-        sut = SUT(V=V, E_bar=E_bar, regions=3)
+        sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
         sut.multiregion_Xi()
 
         npt.assert_allclose(Xi0, sut.Xi)
 
+    def test_generate_Gamma_square3regions(self):
 
-    if __name__ == '__main__':
-        unittest.main()
+        Gamma0 = np.array(
+                        #i  j    i    j      i  j
+                       [[1, 0,   0,   0,     0, 0],     # I
+                        [0, 1,   0,   3/5,   0, 0],     # J
+                                                        #
+                        [0, 0,   0.5, 0,     0, 0],     # I
+                        [0, 0,   0.5, 0,     0, 0],     # J
+                                                        #
+                        [0, 0,   0,   0,     1, 0],     # I
+                        [0, 0,   0,   2/5,   0, 1]])    # J
+
+        sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
+        sut.build_multiregion_Gamma()
+
+        npt.assert_allclose(Gamma0, sut.Gamma)
+
+
+
+
+
+
+if __name__ == '__main__':
+    unittest.main()

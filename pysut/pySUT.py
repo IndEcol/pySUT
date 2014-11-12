@@ -73,7 +73,7 @@ class SUT(object):
 
     def __init__(self, V = None, U = None, Y = None, F = None, FY = None, TL = None,
             unit = None, version = None, year = None, name = 'SUT',
-            regions=None, E_bar=None, Xi=None):
+            regions=1, E_bar=None, Xi=None):
         """ Init function """
         self.V = V # mandatory
         self.U = U # mandatory
@@ -241,7 +241,10 @@ class SUT(object):
         return 'Products were aggregated. Products and industries were resorted successfully.'       
 
 
-    def _aggregate_regions_vectorised(self, X,  AV, axis=None):
+    def _aggregate_regions_vectorised(self, X,  AV=None, axis=None):
+
+        if AV is None:
+            AV = np.ones(self.regions, dtype=int)
 
         # Use local variables for this method
         # Generate region correspondence matrix for aggregation
@@ -521,7 +524,7 @@ class SUT(object):
         q_bar = np.sum(Vagg, 1)
 
         # Normalize regional production relative to total world production
-        D = Vagg.T.dot(mt.diaginv(q_bar))
+        D = Vagg.T.dot(self.diaginv(q_bar))
 
         return D
 
@@ -572,6 +575,22 @@ class SUT(object):
 
         # Put all together and return to self
         self.Xi = Xi + Xi_glob
+
+    def build_multiregion_Gamma(self):
+
+        X = self.V_bar().T
+        X = self._aggregate_regions_vectorised(X, axis=1)
+        qbar = X.sum(axis=0)
+        D = X.dot(self.diaginv(qbar))
+        D_glo = np.kron(np.ones(self.regions), D)
+
+        e_tild = np.array(self.E_bar.sum(1) == 0, int)
+        D_tild = D_glo.dot(self.ddiag(e_tild))
+        
+        qbarmr = self.V_bar().sum(1)
+        Dbar = self.V_bar().T.dot(self.diaginv(qbarmr))
+
+        self.Gamma = D_tild + Dbar
 
 
 
@@ -718,8 +737,146 @@ class SUT(object):
 
 
 
-    
-        
+
+
+    """ HELPER FUNCTIONS"""
+
+    def matrix_norm(self, Z, V):
+        """ Normalizes a flow matrix, even if some rows and columns are null
+
+        Parameters
+        ----------
+        Z : Flow matrix to be normalized
+            dimensions : [com, com] | [com, ind,com] | [ind,com,ind,com]
+        V : Production volume with which flows are normalized
+            [com, ind]
+
+        Returns
+        --------
+        A : Normalized flow matrix, without null rows and columns
+        nn_in : filter applied to rows (0 for removed rows, 1 for kept rows)
+        nn_out : filter applied to cols (0 for removed cols, 1 for kept cols)
+
+        """
+        # Collapse dimensions
+        if Z.ndim > 2:
+            Z = self.collapse_dims(Z)
+        # Basic Variables
+        com = np.size(V, 0)
+        ind = np.size(V, 1)
+        com2 = np.size(Z, 0)
+
+        # Total production, both aggregate and traceable
+        q = np.sum(V, 1)
+        u = np.sum(Z, 1)
+        q_tr = np.zeros(ind * com)
+        for i in range(ind):
+            q_tr[i * com:(i + 1) * com] = V[:, i]
+
+        # Filter inputs. Preserve only commodities that are used (to get the recipe
+        # right) or that are produced (to get the whole matrix square)
+        if np.size(Z, 0) == com:
+            nn_in = (abs(q) + abs(u)) != 0
+        elif np.size(Z, 0) == com * ind:
+            nn_in = (abs(q_tr) + abs(u)) != 0
+        else:
+            nn_in = np.ones(com2, dtype=bool)
+
+        if np.size(Z, 1) == com:
+            nn_out = q != 0
+            A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(self.ddiag(q[nn_out])))
+        elif np.size(Z, 1) == (com * ind):
+            nn_out = q_tr != 0
+            A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(self.ddiag(q_tr[nn_out])))
+        else:
+            nn_out = np.ones(np.size(Z, 1), dtype=bool)
+            A = Z.dot(np.linalg.inv(self.ddiag(q_tr)))
+
+        # Return
+        return (A, nn_in, nn_out)
+
+
+    def diaginv(self, x):
+        """Diagonalizes a vector and inverses it, even if it contains zero values.
+
+        * Element-wise divide a vector of ones by x
+        * Replace any instance of Infinity by 0
+        * Diagonalize the resulting vector
+
+        Parameters
+        ----------
+        x : vector to be diagonalized
+
+        Returns
+        --------
+        y : diagonalized and inversed vector
+           Values on diagonal = 1/coefficient, or 0 if coefficient == 0
+
+        """
+        y = np.ones(len(x)) / x
+        y[y == np.Inf] = 0
+        return self.ddiag(y)
+
+    def ddiag(self, a, nozero=False):
+        """ Robust diagonalization : always put selected diagonal on a diagonal!
+
+        This small function aims at getting a behaviour closer to the
+        mathematical "hat", compared to what np.diag() can delivers.
+
+        If applied to a vector or a 2d-matrix with one dimension of size 1, put
+        the coefficients on the diagonal of a matrix with off-diagonal elements
+        equal to zero.
+
+        If applied to a 2d-matrix (with all dimensions of size > 1), replace
+        all off-diagonal elements by zeros.
+
+        Parameters
+        ----------
+        a : numpy matrix or vector to be diagonalized
+
+        Returns
+        --------
+        b : Diagonalized vector
+
+        Raises:
+           ValueError if a is more than 2dimensional
+
+        See Also
+        --------
+            diag
+        """
+
+        # If numpy vector
+        if a.ndim == 1:
+            b = np.diag(a)
+
+        # If numpy 2d-array
+        elif a.ndim == 2:
+
+            #...but with dimension of magnitude 1
+            if min(a.shape) == 1:
+                b = np.diag(np.squeeze(a))
+
+            # ... or a "true" 2-d matrix
+            else:
+                b = np.diag(np.diag(a))
+
+        else:
+            raise ValueError("Input must be 1- or 2-d")
+
+        # Extreme case: a 1 element matrix/vector
+        if b.ndim == 1 & b.size == 1:
+            b = b.reshape((1, 1))
+
+        if nozero:
+            # Replace offdiagonal zeros by nan if desired
+            c = np.empty_like(b) *  np.nan
+            di = np.diag_indices_from(c)
+            c[di] = b.diagonal()
+            return c
+        else:
+            # A certainly diagonal vector is returned
+            return b
 """
 End of file
 """
