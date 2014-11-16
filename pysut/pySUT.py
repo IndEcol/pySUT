@@ -27,10 +27,8 @@ import sys
 import logging
 # import string
 import numpy as np
-sys.path.append('/home/bill/software/Python/Modules')
-import math_tools as mt
+# pylint: disable-msg=C0103
 
-import IPython
 # import pandas as pd
 # import scipy.sparse.linalg as slinalg
 # import scipy.sparse as sparse
@@ -71,9 +69,9 @@ class SUT(object):
     Basic initialisation and dimension check methods
     """    
 
-    def __init__(self, V = None, U = None, Y = None, F = None, FY = None, TL = None,
-            unit = None, version = None, year = None, name = 'SUT',
-            regions=1, E_bar=None, Xi=None):
+    def __init__(self, V=None, U=None, Y=None, F=None, FY=None, TL=None,
+            unit=None, version=None, year=None, name='SUT',
+            regions=1, E_bar=None, Xi=None, PSI=None, PHI=None, Gamma=None):
         """ Init function """
         self.V = V # mandatory
         self.U = U # mandatory
@@ -90,6 +88,9 @@ class SUT(object):
 
         self.E_bar = E_bar # optional
         self.Xi = Xi
+        self.PSI = PSI
+        self.PHI = PHI
+        self.Gamma = Gamma
         
     def return_version_info(self):
         return str('Class SUT. Version 0.1. Last change: September 24th, 2014.')            
@@ -485,11 +486,23 @@ class SUT(object):
         self.E_bar = E_bar
 
     def V_bar(self):
-        return self.V * self.E_bar
+        if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
+            V_bar = ddiag(self.V)
+            logging.warning("Assuming primary production is on diagonal")
+        else:
+            V_bar = self.V * self.E_bar
+
+        return V_bar
 
     def V_tild(self):
-        E_tild = 1 - self.E_bar
-        return self.V * E_tild
+        if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
+            V_tild = self.V - ddiag(self.V)
+            logging.warning("Assuming primary production is on diagonal")
+        else:
+            E_tild = 1 - self.E_bar
+            V_tild = self.V * E_tild
+
+        return V_tild
 
     def primary_market_shares_of_regions(self):
         """ Calculate a region's share in each product's global primary supply
@@ -524,7 +537,7 @@ class SUT(object):
         q_bar = np.sum(Vagg, 1)
 
         # Normalize regional production relative to total world production
-        D = Vagg.T.dot(self.diaginv(q_bar))
+        D = Vagg.T.dot(diaginv(q_bar))
 
         return D
 
@@ -581,14 +594,14 @@ class SUT(object):
         X = self.V_bar().T
         X = self._aggregate_regions_vectorised(X, axis=1)
         qbar = X.sum(axis=0)
-        D = X.dot(self.diaginv(qbar))
+        D = X.dot(diaginv(qbar))
         D_glo = np.kron(np.ones(self.regions), D)
 
         e_tild = np.array(self.E_bar.sum(1) == 0, int)
-        D_tild = D_glo.dot(self.ddiag(e_tild))
+        D_tild = D_glo.dot(ddiag(e_tild))
         
         qbarmr = self.V_bar().sum(1)
-        Dbar = self.V_bar().T.dot(self.diaginv(qbarmr))
+        Dbar = self.V_bar().T.dot(diaginv(qbarmr))
 
         self.Gamma = D_tild + Dbar
 
@@ -736,147 +749,563 @@ class SUT(object):
         return self.S_ITC_cxc        
 
 
+    def pc_agg(self):
+        """Performs Partition Aggregation Construct of SuUT inventory
+
+        Parameters
+        ----------
+        self.U : Use table [com, ind]
+        self.V : Supply table [com, ind]
+        self.PSI : Properties table [com, properties]
+        self.PHI : Partition coefficient [ind, com (default=np.empty(0))]
+        self.F : Unallocated emissions [ext, ind] (default=np.empty(0))
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        nn_in : filter to remove np.empty rows in A or Z [com]
+        nn_out : filter to remove np.empty columns in A or Z [com]
+        F_con : Constructed emissions [ext,com]
+        S_con : Normalized, constructed emissions [ext, com]
+
+        """
+        # Default values
+        F_con = np.empty(0)
+        S_con = np.empty(0)
+
+        # Partitioning properties and coefficients
+        if self.PHI is None:
+            self.pa_coeff()
+
+        # Partitioning of product flows
+        Z = self.U.dot(self.PHI)  # <-- eq:PCagg
+        (A, nn_in, nn_out) = matrix_norm(Z, self.V)
+
+        # Partitioning of environmental extensions
+        if self.F.size:
+            F_con = self.F.dot(self.PHI)  # <-- eq:PCEnvExt
+
+            # Normalize environmental extension
+            (S_con, _, _) = matrix_norm(F_con, self.V)
+
+        return (Z, A, nn_in, nn_out, F_con, S_con)
 
 
+    def psc_agg(self):
+        """Performs Product Substitution aggregation Construct of SuUT inventory
+
+        Parameters
+        ----------
+        U : Use table [com, ind]
+        V : Supply table [com, ind]
+        E_bar : 0 or 1 mapping of primary commodities to industries [com,ind]
+        Xi : substitution table [com,com]
+        G : Unallocated emissions [ext, ind] (default=np.empty(0))
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        nn_in : filter to remove np.empty rows in A or Z [com]
+        nn_out : filter to remove np.empty columns in A or Z [com]
+        G_con : Constructed emissions [ext,com]
+        F : Normalized, constructed emissions [ext, com]
+        """
+
+        # Default values
+        #G_con = np.empty(0)
+        #F = np.empty(0)
+
+        # Basic variables
+        #(V_tild, V_bar, _, _) = _rank_products(E_bar, V)
+
+        # Construction of Product Flows
+        Z = (self.U - self.Xi.dot(self.V_tild())).dot(self.E_bar.T)  # <-- eq:PSCagg
+        # Normalizing
+        (A, nn_in, nn_out) = matrix_norm(Z, self.V_bar())
+
+        # Allocation of Environmental Extensions
+        if self.F.size:
+            F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
+
+            # Normalization
+            (F_norm, _, _) = matrix_norm(F_con, self.V_bar())
+
+        # Return allocated values
+        return(Z, A, nn_in, nn_out, F_con, F_norm)
+
+
+    def aac_agg(self, nmax=np.Inf):
+        """ Alternative Activity aggregation Construct of SuUT inventory
+
+        Parameters
+        ----------
+        self.U : Use table [com, ind]
+        self.V : Supply table [com, ind]
+        self.E_bar : 0 or 1 mapping of primary commodities to industries [com,ind]
+        Gamma : 0 or 1 mapping of alternate activity for each commodity
+               [ind,com]
+        self.F : Unallocated emissions [ext, ind] (default=np.empty(0))
+        nmax : maximum number of iterative loops for defining A_gamma
+               (default=Inf)
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        nn_in : filter to remove np.empty rows in A or Z [com]
+        nn_out : filter to remove np.empty columns in A or Z [com]
+        F_con : Constructed emissions [ext,com]
+        S_con : Normalized, constructed emissions [ext, com]
+
+        """
+        # Default values
+        F_con = np.empty(0)
+        S_con = np.empty(0)
+
+        # Basic variables
+        e_ind = np.ones(self.V.shape[1])
+        V_tild = self.V_tild()
+
+        # Calculate competing technology requirements
+        A_gamma = self.alternate_tech(self.U, nmax)
+
+        # Allocation step
+        Z = (self.U - A_gamma.dot(V_tild)).dot(self.E_bar.T) + \
+                A_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACagg
+
+        (A, nn_in, nn_out) = matrix_norm(Z, self.V)
+
+        # Partitioning of environmental extensions
+        if self.F.size:
+            F_gamma = self.alternate_tech(self.F, nmax)
+            F_con = (self.F - F_gamma.dot(V_tild)).dot(self.E_bar.T) + \
+                    F_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACEnvExt
+            (S_con, _, _) = matrix_norm(F_con, self.V)
+
+    #   Output
+        return(Z, A, nn_in, nn_out, F_con, S_con)
+
+    ##############################################################################
+
+
+    def lsc(self):
+        """ Performs Lump-sum aggregation Construct of SuUT inventory
+
+        Parameters
+        ----------
+        self.U : Use table [com, ind]
+        self.V : Supply table [com, ind]
+        self.E_bar : 0 or 1 mapping of primary commodities to industries [com,ind]
+        self.F : Unallocated emissions [ext, ind] (default=np.empty(0))
+
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        nn_in : filter to remove np.empty rows in A or Z [com]
+        nn_out : filter to remove np.empty columns in A or Z [com]
+        F_con : Constructed emissions [ext,com]
+        S_con : Normalized, constructed emissions [ext, com]
+
+        """
+        # Default values
+        F_con = np.empty(0)
+        S_con = np.empty(0)
+
+        # Allocation of Product Flows
+        Z = self.U.dot(self.E_bar.T)  # <-- eq:LSCagg
+        V_dd = self.E_bar.dot(ddiag(self.g_V()))  # <-- eq:LSCagg
+        # Normalizing
+        (A, nn_in, nn_out) = matrix_norm(Z, V_dd)
+
+        # Allocation of Environmental Extensions
+        if self.F.size:
+            F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
+            # Normalization
+            (S_con, _, _) = matrix_norm(F_con, V_dd)
+
+        # Return allocated values
+        return(Z, A, nn_in, nn_out, F_con, S_con)
+
+
+    ###############################################################################
+    # SPECIAL CASES
+
+    def itc(self):
+        """Performs Industry Technology Construct of SuUT inventory
+
+        Parameters
+        ----------
+        self.U : Use table [com, ind]
+        self.V : Supply table [com, ind]
+        self.F : Unallocated emissions [ext, ind] (default=np.empty(0))
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        F_con : Constructed emissions [ext,com]
+        S_con : Normalized, constructed emissions [ext, com]
+
+        """
+        # Default values
+        F_con = np.empty(0)
+        S_con = np.empty(0)
+
+        Z = self.U.dot(diaginv(self.g_V())).dot(self.V.T)  # <-- eq:itc
+        (A, _, _) = matrix_norm(Z, self.V)
+
+        if self.F.size:
+            F_con = self.F.dot(diaginv(self.g_V())).dot(self.V.T)  # <-- eq:ITCEnvExt
+            (S_con, _, _) = matrix_norm(F_con, self.V)
+
+        return(Z, A, F_con, S_con)
+
+
+    def ctc(self):
+        """Performs Commodity Technology Construct of SuUT inventory
+
+        Parameters
+        ----------
+        self.U : Use table [com, ind]
+        self.V : Supply table [com, ind]
+        self.F : Unallocated emissions [ext, ind] (default=np.empty(0))
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        F_con : Constructed emissions [ext,com]
+        S_con : Normalized, constructed emissions [ext, com]
+
+        """
+        # Default values
+        F_con = np.empty(0)
+        S_con = np.empty(0)
+
+        A = self.U.dot(np.linalg.inv(self.V))  # <-- eq:ctc
+        Z = A.dot(ddiag(self.q_V()))
+
+        if self.F.size:
+            S_con = self.F.dot(np.linalg.inv(self.V))
+            F_con = S_con.dot(ddiag(self.q_V()))  # <--eq:CTCEnvExt
+        return(Z, A, F_con, S_con)
+
+
+    def btc(self):
+        """Performs Byproduct Technology Construct of SuUT inventory
+        Parameters
+        ----------
+        self.U : Use table [com, ind]
+        self.V : Supply table [com, ind]
+        self.E_bar : 0 or 1 mapping of primary commodities to industries [com,ind]
+        self.F : Unallocated emissions [ext, ind] (default=np.empty(0))
+
+        Returns
+        --------
+        Z : constructed intermediate flow matrix [com,com]
+        A : Normalized technical requirements [com,com]
+        F_con : Constructed emissions [ext,com]
+        S_con : Normalized, constructed emissions [ext, com]
+
+        """
+
+        # Default values
+        F_con = np.empty(0)
+        S_con = np.empty(0)
+
+        if self.E_bar is None and (self.V.shape[0] == self.F.shape[1]):
+            E_bar = np.eye(self.V.shape[0])
+        else:
+            E_bar = self.E_bar
+
+        # The construct
+        Z = (self.U - self.V_tild()).dot(E_bar.T)  # <-- eq:btc
+        (A, _, _) = matrix_norm(Z, self.V_bar())
+
+        if self.F.size:
+            F_con = self.F.dot(E_bar.T)  # <-- eq:NonProdBalEnvExt
+            (S_con, _, _) = matrix_norm(F_con, self.V_bar())
+        return(Z, A, F_con, S_con)
 
     """ HELPER FUNCTIONS"""
-
-    def matrix_norm(self, Z, V):
-        """ Normalizes a flow matrix, even if some rows and columns are null
-
-        Parameters
-        ----------
-        Z : Flow matrix to be normalized
-            dimensions : [com, com] | [com, ind,com] | [ind,com,ind,com]
-        V : Production volume with which flows are normalized
-            [com, ind]
-
-        Returns
-        --------
-        A : Normalized flow matrix, without null rows and columns
-        nn_in : filter applied to rows (0 for removed rows, 1 for kept rows)
-        nn_out : filter applied to cols (0 for removed cols, 1 for kept cols)
-
-        """
-        # Collapse dimensions
-        if Z.ndim > 2:
-            Z = self.collapse_dims(Z)
-        # Basic Variables
-        com = np.size(V, 0)
-        ind = np.size(V, 1)
-        com2 = np.size(Z, 0)
-
-        # Total production, both aggregate and traceable
-        q = np.sum(V, 1)
-        u = np.sum(Z, 1)
-        q_tr = np.zeros(ind * com)
-        for i in range(ind):
-            q_tr[i * com:(i + 1) * com] = V[:, i]
-
-        # Filter inputs. Preserve only commodities that are used (to get the recipe
-        # right) or that are produced (to get the whole matrix square)
-        if np.size(Z, 0) == com:
-            nn_in = (abs(q) + abs(u)) != 0
-        elif np.size(Z, 0) == com * ind:
-            nn_in = (abs(q_tr) + abs(u)) != 0
-        else:
-            nn_in = np.ones(com2, dtype=bool)
-
-        if np.size(Z, 1) == com:
-            nn_out = q != 0
-            A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(self.ddiag(q[nn_out])))
-        elif np.size(Z, 1) == (com * ind):
-            nn_out = q_tr != 0
-            A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(self.ddiag(q_tr[nn_out])))
-        else:
-            nn_out = np.ones(np.size(Z, 1), dtype=bool)
-            A = Z.dot(np.linalg.inv(self.ddiag(q_tr)))
-
-        # Return
-        return (A, nn_in, nn_out)
-
-
-    def diaginv(self, x):
-        """Diagonalizes a vector and inverses it, even if it contains zero values.
-
-        * Element-wise divide a vector of ones by x
-        * Replace any instance of Infinity by 0
-        * Diagonalize the resulting vector
+    def pa_coeff(self):
+        """Calculates partition coefficients from supply and properties table
 
         Parameters
         ----------
-        x : vector to be diagonalized
+        self.V : Supply table [com, ind]
+        self.PSI : Properties table [com, properties]
 
         Returns
         --------
-        y : diagonalized and inversed vector
-           Values on diagonal = 1/coefficient, or 0 if coefficient == 0
+        self.PHI : Partition coefficient [ind, com (default=np.empty(0))]
+            Properties in self.PSI should be intensive properties (e.g. energy density,
+            price etc., not extensive properties such as energy content, value, or
+            mass
 
         """
-        y = np.ones(len(x)) / x
-        y[y == np.Inf] = 0
-        return self.ddiag(y)
+        # Calculate total amount of the partition property that is output by each
+        # industry (total mass output for all commodities supplied by ind. J)
+        denominator = ddiag(self.V.T.dot(self.PSI))
 
-    def ddiag(self, a, nozero=False):
-        """ Robust diagonalization : always put selected diagonal on a diagonal!
+        # Calculate the share of this total output of property that is mediated by
+        # each output (share of total mass output by ind. J that happens via
+        # commodity j.
+        self.PHI = np.linalg.inv(denominator).dot(self.V.T * self.PSI.T)
 
-        This small function aims at getting a behaviour closer to the
-        mathematical "hat", compared to what np.diag() can delivers.
 
-        If applied to a vector or a 2d-matrix with one dimension of size 1, put
-        the coefficients on the diagonal of a matrix with off-diagonal elements
-        equal to zero.
 
-        If applied to a 2d-matrix (with all dimensions of size > 1), replace
-        all off-diagonal elements by zeros.
+    def alternate_tech(self, X, nmax=np.Inf, lay=None):
+        """Compilation of Alternate Technologies for use in AAA and AAC models
 
         Parameters
         ----------
-        a : numpy matrix or vector to be diagonalized
+        X : Use table [com, ind] or [org, com, ind]
+        self.V : Supply table [com, ind]
+        self.E_bar : mapping of primary commodities to industries [com,ind]
+        Gamma : mapping of alternate producer for each commodity [ind,com]
+        nmax : maximum number of iterations, as this search for alternative
+           technologies is not garanteed to suceed
 
         Returns
         --------
-        b : Diagonalized vector
+        A_gamma : the selected alternative technology that will be assumed for
+            each secondary production
 
-        Raises:
-           ValueError if a is more than 2dimensional
 
-        See Also
-        --------
-            diag
         """
 
-        # If numpy vector
-        if a.ndim == 1:
-            b = np.diag(a)
+        # Basic variables
+        # (com, _, org, traceable, e_com, _, _, self.g_V(), _) = basic_variables(X, self.V)
+        #
+        com = self.V.shape[0]
+        traceable = False
+        org = 1 # check on this
+        e_com = np.ones(com)
+        V_tild = self.V_tild()
+        V_bar = self.V_bar()
+        Gamma = self.Gamma
 
-        # If numpy 2d-array
-        elif a.ndim == 2:
+        # If a property layer is defined for Gamma, then evaluate unit conversion
+        if Gamma.ndim == 3:
+            if lay is None:
+                raise TypeError('expected a value for lay')
+            s = Gamma.shape
+            tmp = np.zeros((s[0], s[2]))
+            for i in range(Gamma.shape[1]):
+                tmp += diaginv(lay[i, :].dot(self.E_bar)).dot(Gamma[:, i, :]).dot(
+                        ddiag(lay[i, :]))
+            Gamma = tmp
 
-            #...but with dimension of magnitude 1
-            if min(a.shape) == 1:
-                b = np.diag(np.squeeze(a))
+        so = np.array(np.sum(self.V != 0, 0) == 1, dtype=int)
+        mo = np.array(np.sum(self.V != 0, 0) != 1, dtype=int)
 
-            # ... or a "true" 2-d matrix
-            else:
-                b = np.diag(np.diag(a))
+        invg = diaginv(self.g_V())
+        M = V_tild.dot(np.linalg.inv(ddiag(e_com.dot(V_bar))))
+        # Prepare summation term used in definition of A_gamma
+        n = 0
+        tier = -1 * Gamma.dot(M)
+        tier_n = np.linalg.matrix_power(tier, 0)   # simplifies to identity matrix
+        theSum = tier_n.dot(Gamma)
+        n = n + 1
+        while np.sum(tier_n) != 0 and n <= nmax:
+            tier_n = tier_n.dot(tier)
+            theSum = theSum + tier_n.dot(Gamma)
+            n += 1
+        if not traceable:
+            B = X.dot(invg)
+            B_so = B.dot(ddiag(so))
+
+            N = X.dot(np.linalg.inv(ddiag(e_com.dot(V_bar))))
+            N_so = N.dot(ddiag(mo))
+
+            A_gamma = (B_so + N_so).dot(theSum)
 
         else:
-            raise ValueError("Input must be 1- or 2-d")
+            A_gamma = np.zeros([org, com, com])
+            for I in range(org):
+                Bo = X[I, :, :].dot(invg)
+                Bo_so = Bo.dot(ddiag(so))
+                No = X[I, :, :].dot(np.linalg.inv(ddiag(e_com.dot(V_bar))))
+                No_mo = No.dot(ddiag(mo))
+                A_gamma[I, :, :] = (Bo_so + No_mo).dot(theSum)
 
-        # Extreme case: a 1 element matrix/vector
-        if b.ndim == 1 & b.size == 1:
-            b = b.reshape((1, 1))
+        return(A_gamma)
 
-        if nozero:
-            # Replace offdiagonal zeros by nan if desired
-            c = np.empty_like(b) *  np.nan
-            di = np.diag_indices_from(c)
-            c[di] = b.diagonal()
-            return c
+
+def collapse_dims(x, first2dimensions=False):
+    """Collapse 3-d or 4-d array in two dimensions
+
+    Parameters
+    ----------
+    x : 3d or 4d array to be collapsed
+
+    first2dimensions : Boolean : For 3d array, should the last two dimensions
+        be flattened together (default) or should the first two be
+        flattened together instead (=true)?
+
+    Returns
+    --------
+    z : Flatened 2d array
+
+    """
+
+    s = x.shape
+    if x.ndim == 4:
+        z = x.reshape((s[0] * s[1], s[2] * s[3]))
+    elif x.ndim == 3:
+        if first2dimensions:
+            z = x.reshape((s[0] * s[1], s[2]))
         else:
-            # A certainly diagonal vector is returned
-            return b
+            z = x.reshape((s[0], s[1] * s[2]))
+    elif x.ndim == 2:
+        print('Already in 2-dimensional, pass')
+        z = x
+    else:
+        print('PROBLEM? ndim(Y) = {}'.format(x.ndim))
+    return z
+
+
+def matrix_norm(Z, V):
+    """ Normalizes a flow matrix, even if some rows and columns are null
+
+    Parameters
+    ----------
+    Z : Flow matrix to be normalized
+        dimensions : [com, com] | [com, ind,com] | [ind,com,ind,com]
+    V : Production volume with which flows are normalized
+        [com, ind]
+
+    Returns
+    --------
+    A : Normalized flow matrix, without null rows and columns
+    nn_in : filter applied to rows (0 for removed rows, 1 for kept rows)
+    nn_out : filter applied to cols (0 for removed cols, 1 for kept cols)
+
+    """
+    # Collapse dimensions
+    if Z.ndim > 2:
+        Z = collapse_dims(Z)
+    # Basic Variables
+    com = np.size(V, 0)
+    ind = np.size(V, 1)
+    com2 = np.size(Z, 0)
+
+    # Total production, both aggregate and traceable
+    q = np.sum(V, 1)
+    u = np.sum(Z, 1)
+    q_tr = np.zeros(ind * com)
+    for i in range(ind):
+        q_tr[i * com:(i + 1) * com] = V[:, i]
+
+    # Filter inputs. Preserve only commodities that are used (to get the recipe
+    # right) or that are produced (to get the whole matrix square)
+    if np.size(Z, 0) == com:
+        nn_in = (abs(q) + abs(u)) != 0
+    elif np.size(Z, 0) == com * ind:
+        nn_in = (abs(q_tr) + abs(u)) != 0
+    else:
+        nn_in = np.ones(com2, dtype=bool)
+
+    if np.size(Z, 1) == com:
+        nn_out = q != 0
+        A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(ddiag(q[nn_out])))
+    elif np.size(Z, 1) == (com * ind):
+        nn_out = q_tr != 0
+        A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(ddiag(q_tr[nn_out])))
+    else:
+        nn_out = np.ones(np.size(Z, 1), dtype=bool)
+        A = Z.dot(np.linalg.inv(ddiag(q_tr)))
+
+    # Return
+    return (A, nn_in, nn_out)
+
+def diaginv(x):
+    """Diagonalizes a vector and inverses it, even if it contains zero values.
+
+    * Element-wise divide a vector of ones by x
+    * Replace any instance of Infinity by 0
+    * Diagonalize the resulting vector
+
+    Parameters
+    ----------
+    x : vector to be diagonalized
+
+    Returns
+    --------
+    y : diagonalized and inversed vector
+       Values on diagonal = 1/coefficient, or 0 if coefficient == 0
+
+    """
+    y = np.ones(len(x)) / x
+    y[y == np.Inf] = 0
+    return ddiag(y)
+
+def ddiag(a, nozero=False):
+    """ Robust diagonalization : always put selected diagonal on a diagonal!
+
+    This small function aims at getting a behaviour closer to the
+    mathematical "hat", compared to what np.diag() can delivers.
+
+    If applied to a vector or a 2d-matrix with one dimension of size 1, put
+    the coefficients on the diagonal of a matrix with off-diagonal elements
+    equal to zero.
+
+    If applied to a 2d-matrix (with all dimensions of size > 1), replace
+    all off-diagonal elements by zeros.
+
+    Parameters
+    ----------
+    a : numpy matrix or vector to be diagonalized
+
+    Returns
+    --------
+    b : Diagonalized vector
+
+    Raises:
+       ValueError if a is more than 2dimensional
+
+    See Also
+    --------
+        diag
+    """
+
+    # If numpy vector
+    if a.ndim == 1:
+        b = np.diag(a)
+
+    # If numpy 2d-array
+    elif a.ndim == 2:
+
+        #...but with dimension of magnitude 1
+        if min(a.shape) == 1:
+            b = np.diag(np.squeeze(a))
+
+        # ... or a "true" 2-d matrix
+        else:
+            b = np.diag(np.diag(a))
+
+    else:
+        raise ValueError("Input must be 1- or 2-d")
+
+    # Extreme case: a 1 element matrix/vector
+    if b.ndim == 1 & b.size == 1:
+        b = b.reshape((1, 1))
+
+    if nozero:
+        # Replace offdiagonal zeros by nan if desired
+        c = np.empty_like(b) *  np.nan
+        di = np.diag_indices_from(c)
+        c[di] = b.diagonal()
+        return c
+    else:
+        # A certainly diagonal vector is returned
+        return b
+
 """
 End of file
 """

@@ -8,6 +8,7 @@ Created on Mon Aug 11 16:19:39 2014
 import numpy as np
 import numpy.testing as npt
 # import pylab
+import IPython
 from pySUT import SUT
 import unittest
 
@@ -243,10 +244,14 @@ class KnownResults(unittest.TestCase):
                           [0, 0, 0, 0, 1, 0],
                           [0, 0, 0, 0, 0, 1]])
 
-        # Case 1: 3 regions, 2 industries, 2 products:
+        # Case 1: 3 regions, 2 industries, 3 products:
         #--------------------------------------------
 
-        self.Vmr = np.array([
+        # No production of j in Canada
+        # No product of i or k in Norway
+        # No product of j in US
+
+        self.V_3r2i3p = np.array([
                          #   Ca   Ca     No   No     US   US
                          #   I    J      I    J      I    J
                          [   4.,  0.,    0.,  0.,    0.,  0.,  ],     #i  Ca
@@ -260,6 +265,21 @@ class KnownResults(unittest.TestCase):
                          [   0.,  0.,    0.,  0.,    8.,  0.,  ],     #i  US
                          [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  US
                          [   0.,  0.,    0.,  0.,    0.,  9.,  ]])    #k  US
+
+        self.E_bar_3r2i3p = np.array([
+                         #   Ca   Ca     No   No     US   US
+                         #   I    J      I    J      I    J
+                         [   1,  0,    0,  0,    0,  0,  ],     #i  Ca
+                         [   0,  0,    0,  0,    0,  0,  ],     #j  Ca
+                         [   0,  1,    0,  0,    0,  0,  ],     #k  Ca
+                         #
+                         [   0,  0,    0,  0,    0,  0,  ],     #i  No
+                         [   0,  0,    1,  0,    0,  0,  ],     #j  No
+                         [   0,  0,    0,  0,    0,  0,  ],     #k  No
+                         #
+                         [   0,  0,    0,  0,    1,  0,  ],     #i  US
+                         [   0,  0,    0,  0,    0,  0,  ],     #j  US
+                         [   0,  0,    0,  0,    0,  1,  ]])    #k  US
 
     def test_SUT_balances(self):
         """Test simple balances of SUT"""
@@ -397,36 +417,13 @@ class KnownResults(unittest.TestCase):
                            [0, 0, 0, 1, 0]])
         npt.assert_array_equal(E_bar0, sut.E_bar)
 
+    def test_generate_mainproduct_matrix_3reg2ind3prod(self):
 
-    def test_V_bar_tilde(self):
+        # native value, should not alter results
+        sut = SUT(V=self.V_3r2i3p)
 
-        # Initialize sut
-        V = np.array([[1.4, 0, 0,  12],
-                      [5.,  3, 6., 0],
-                      [0,   0, 0,  0.1],
-                      [0,   0, 0,  0]])
-        E_bar = np.array([[1, 0, 0, 0],
-                          [0, 1, 1, 0],
-                          [0, 0, 0, 1],
-                          [0, 0, 0, 0]])
-        sut = SUT(V=V, E_bar=E_bar)
-
-        # Test V_bar: primary supply flows only
-        V0 = np.array([[1.4, 0, 0,  0],
-                       [0.,  3, 6., 0],
-                       [0,   0, 0,  0.1],
-                       [0,   0, 0,  0]])
-        npt.assert_array_equal(V0, sut.V_bar())
-
-        # Test V_tild: secondary supply flows only
-        V0 = np.array([[0,   0, 0,  12],
-                       [5.,  0, 0,  0],
-                       [0,   0, 0,  0],
-                       [0,   0, 0,  0]])
-        npt.assert_array_equal(V0, sut.V_tild())
-
-
-
+        sut.generate_mainproduct_matrix()
+        npt.assert_array_equal(self.E_bar_3r2i3p, sut.E_bar)
 
     def test_aggregate_regions_vectorised_rowsAndColumns(self):
         U = np.arange(54).reshape((9,6))
@@ -536,6 +533,39 @@ class KnownResults(unittest.TestCase):
         sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
         sut.multiregion_Xi()
 
+
+        npt.assert_allclose(Xi0, sut.Xi)
+
+    def test_generate_Xi_3reg2ind3prod(self):
+
+
+        # No production of j in Canada
+        # No product of i or k in Norway
+        # No product of j in US
+
+        # j primarily produced only in Norway, any 2nd prod of j diplaces j_No
+        # No prod i in Norway displaces world mix (1:2 Ca:USA)
+        # No prod k in Norway, displaces world mix (1:3 Ca:USA)
+
+
+        Xi0 = np.array([
+                         #   Ca   Ca  Ca No  No No   US  US US
+                         #   i   j  k    i      j  k       i   j  k
+                         [   1,  0, 0,   1./3,  0, 0,      0,  0, 0 ],     #i  Ca
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #j  Ca
+                         [   0,  0, 1,   0,     0, 1./4,   0,  0, 0 ],     #k  Ca
+                         #
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #i  No
+                         [   0,  1, 0,   0,     1, 0,      0,  1, 0 ],     #j  No
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #k  No
+                         #
+                         [   0,  0, 0,   2./3,  0, 0,      1,  0, 0 ],     #i  US
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #j  US
+                         [   0,  0, 0,   0,     0, 3./4,   0,  0, 1 ]])    #k  US
+
+        sut = SUT(V=self.V_3r2i3p, E_bar=self.E_bar_3r2i3p, regions=3)
+        sut.multiregion_Xi()
+
         npt.assert_allclose(Xi0, sut.Xi)
 
     def test_generate_Gamma_square3regions(self):
@@ -556,10 +586,410 @@ class KnownResults(unittest.TestCase):
 
         npt.assert_allclose(Gamma0, sut.Gamma)
 
+    def test_generate_Gamma_3reg2ind3prod(self):
+
+
+        # Sole producer of j is I_No (not J_No), pick that one
+        # i_No assume tech of I_Ca and I_US (1:2)
+        # k_No assume tech of J_Ca and J_US (1:3)
+
+        Gamma0 = np.array([
+                         #   Ca   Ca  Ca No  No No      US  US US
+                         #   i  j  k    i     j  k       i  j  k
+                         [   1, 0, 0,   1./3, 0, 0,      0, 0, 0 ],    #I  Ca
+                         [   0, 0, 1,   0,    0, 1./4,   0, 0, 0 ],    #J  Ca
+                         #
+                         [   0, 1, 0,   0,    1, 0,      0, 1, 0 ],    #I  No
+                         [   0, 0, 0,   0,    0, 0,      0, 0, 0 ],    #J  No
+                         #
+                         [   0, 0, 0,   2./3, 0, 0,      1, 0, 0 ],    #I  US
+                         [   0, 0, 0,   0,    0, 3./4,   0, 0, 1 ]])   #J  US
+
+        sut = SUT(V=self.V_3r2i3p, E_bar=self.E_bar_3r2i3p, regions=3)
+        sut.build_multiregion_Gamma()
+        npt.assert_allclose(Gamma0, sut.Gamma)
+
+
+
+class TestAllocationsConstructs(unittest.TestCase):
+    """ Unit test class for allocations and constructs"""
+
+    ## DEFINE SIMPLE TEST CASES
+    def setUp(self):
+        """
+        We define simple Supply and Use Table systems to test all allocations
+        anc constructs.
+
+        We first define a Supply and traceable Use Table system, with three
+        products (i, j, k) and four industries (I, J1, J2, and K).
+
+        Then, by aggregation we generate a Supply and untraceable Use table
+        system (SuUT).
+
+        To test commodity-technology construct (CTC) and the
+        byproduct-technology construct (BTC), we also generate a square SUT
+        (Va, Ua, Ga), with three products and three industries (I, J, K), by
+        further aggregation.
+
+
+        """
+
+        # absolute tolerance for assertion tests (rouding error)
+        self.atol = 1e-08
+
+        # CASE 0
+        #---------
+
+        # Defining labels for industries, commodities and factors of prod.
+        self.l_ind = np.array([['I', 'J1', 'J2', 'K']], dtype=object).T
+        self.l_com = np.array([['i', 'j', 'k']], dtype=object).T
+        self.l_ext = np.array([['CO2', 'CH4']], dtype=object).T
+
+        # dimensions
+        self.ind = len(self.l_ind)
+        self.com = len(self.l_com)
+
+        # labels for traceable flows
+        self.l_tr = list()
+        for i in self.l_ind:
+            for j in self.l_com:
+                self.l_tr.append(j + '_{' + i + '}')
+
+        # Supply table
+        self.V = np.array([[2, 0, 0, 0],
+                           [1, 1, 3, 0],
+                           [0, 0, 0, 11]], dtype=float)
+
+        # Traceable use table
+        self.Ut = np.array(np.zeros((4, 3, 4), float))
+        self.Ut[3, 2, 0] = 4    # use of k from K by I
+        self.Ut[3, 2, 1] = 0.75    # use of k from K by J1
+        self.Ut[3, 2, 2] = 2    # use of k from K by J2
+        self.Ut[0, 1, 3] = 0.25    # use of j from I by K
+        self.Ut[2, 1, 3] = 0.5     # use of j from J2 by K
+
+        # Untraceable use table
+        self.Uu = np.array(sum(self.Ut, 0))
+
+
+        # Use of factors of production by industries
+        self.G = np.array([
+            [10,    4,    15,    18],
+            [0,    0,    1,    0]
+            ], dtype=float)
+
+
+        # Intensive properties used in partitioning
+        self.PSI = np.array([
+        #       I       J1      J2      K
+            [0.1,     0.1,     0.1,     0.1],     # i
+            [0.2,     0.2,     0.2,     0.2],     #j
+            [0.3,     0.3,     0.3,     0.3],     # k
+            ])
+
+        # Alternate activity, used in AAA/AAC
+        self.Gamma = np.array([
+        #    i        j        k
+            [1,       0,       0],       # I
+            [0,       0,       0],       # J1
+            [0,       1,       0],       # J2
+            [0,       0,       1]        # K
+            ])
+
+        # Identifies primary product of each industry
+        self.E_bar = np.array([
+        #    I      J1      J2      K
+            [1,       0,       0,       0],     #  i
+            [0,       1,       1,       0],     #  j
+            [0,       0,       0,       1],     #  k
+            ])
+
+        # Substitutability between products
+        self.Xi = np.array([
+            [1,	0,	0],
+            [0,	0,	0],
+            [0,	0.3,	1]
+            ])
+
+        # Square SUT
+        self.Va = self.V.dot(self.E_bar.T)
+        self.Ua = self.Uu.dot(self.E_bar.T)
+        self.Ga = self.G.dot(self.E_bar.T)
 
 
 
 
+    def test_V_bar_tilde(self):
+
+        # Initialize sut
+        V = np.array([[1.4, 0, 0,  12],
+                      [5.,  3, 6., 0],
+                      [0,   0, 0,  0.1],
+                      [0,   0, 0,  0]])
+        E_bar = np.array([[1, 0, 0, 0],
+                          [0, 1, 1, 0],
+                          [0, 0, 0, 1],
+                          [0, 0, 0, 0]])
+        sut = SUT(V=V, E_bar=E_bar)
+
+        # Test V_bar: primary supply flows only
+        V0 = np.array([[1.4, 0, 0,  0],
+                       [0.,  3, 6., 0],
+                       [0,   0, 0,  0.1],
+                       [0,   0, 0,  0]])
+        npt.assert_array_equal(V0, sut.V_bar())
+
+        # Test V_tild: secondary supply flows only
+        V0 = np.array([[0,   0, 0,  12],
+                       [5.,  0, 0,  0],
+                       [0,   0, 0,  0],
+                       [0,   0, 0,  0]])
+        npt.assert_array_equal(V0, sut.V_tild())
+
+
+
+
+    def test_V_bar_tilde_assumeDiag(self):
+
+        # Initialize sut
+        V = np.array([[1.4, 0, 0,  12],
+                      [5.,  3, 6., 0],
+                      [0,   0, 0,  0.1],
+                      [0,   0, 0,  0]])
+        sut = SUT(V=V)
+
+        # Test V_bar: primary supply flows only
+        V0 = np.array([[1.4, 0, 0,  0],
+                       [0.,  3, 0., 0],
+                       [0,   0, 0,  0],
+                       [0,   0, 0,  0]])
+        npt.assert_array_equal(V0, sut.V_bar())
+
+        # Test V_tild: secondary supply flows only
+        V0 = np.array([[0.0, 0, 0,  12],
+                       [5.,  0, 6., 0],
+                       [0,   0, 0,  0.1],
+                       [0,   0, 0,  0]])
+        npt.assert_array_equal(V0, sut.V_tild())
+
+
+
+
+    def test_psc_agg(self):
+        """ Tests Product Substition Construct on SuUT"""
+
+        Z0 = np.array([[0.  ,  0.  ,  0.  ],
+                       [0.  ,  0.  ,  0.75],
+                       [3.7 ,  2.75,  0.  ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.85      ,  0.6875    ,  0.        ]])
+
+        F0 = np.array([[5.        ,  4.75      ,  1.63636364],
+                       [0.        ,  0.25      ,  0.        ]])
+
+        sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, Xi=self.Xi, F=self.G)
+        Z, A, __, __, __, F = sut.psc_agg()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+
+    def test_partition_coefficients(self):
+        """ Test calculation of PA coeff. (PHI) from intensive properties (PSI)
+        """
+
+        PHI0 = np.array([[0.5,  0.5,  0. ],
+                         [0. ,  1. ,  0. ],
+                         [0. ,  1. ,  0. ],
+                         [0. ,  0. ,  1. ]])
+        sut = SUT(PSI=self.PSI, V=self.V)
+        sut.pa_coeff()
+        npt.assert_allclose(PHI0, sut.PHI)
+
+    def test_pc_agg(self):
+        """ Tests partition aggregation construct on SuUT"""
+
+        Z0 = np.array([[0.  ,  0.  ,  0.  ],
+                       [0.  ,  0.  ,  0.75],
+                       [2.  ,  4.75,  0.  ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.        ,  0.95      ,  0.        ]])
+
+        G_con0 = np.array([[5.,  24.,  18.],
+                           [0.,   1.,   0.]])
+
+        F0 = np.array([[2.5       ,  4.8       ,  1.63636364],
+                       [0.        ,  0.2       ,  0.        ]])
+
+        sut = SUT(U=self.Uu, V=self.V, PSI=self.PSI, F=self.G)
+        Z, A, __, __, G_con, F = sut.pc_agg()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(G_con0, G_con, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+
+    def test_aac_agg(self):
+        """ Tests Alternate Activity Construct on SuUT"""
+
+        Z0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.75      ],
+                       [3.33333333,  3.41666667,  0.        ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.66666667,  0.68333333,  0.        ]])
+
+        F0 = np.array([[2.5       ,  4.8       ,  1.63636364],
+                       [-0.16666667,  0.26666667,  0.        ]])
+
+        sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, Gamma=self.Gamma,
+                  F=self.G)
+        Z, A, __, __, __, F = sut.aac_agg()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+
+    def test_lsc(self):
+        """ Tests Lump Sum Construct on SuUT"""
+
+        Z0 = np.array([[0.  ,  0.  ,  0.  ],
+                       [0.  ,  0.  ,  0.75],
+                       [4.  ,  2.75,  0.  ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.33333333,  0.6875    ,  0.        ]])
+
+        G_con0 = np.array([[10.,  19.,  18.],
+                           [0.,   1.,   0.]])
+
+        F0 = np.array([[3.33333333,  4.75      ,  1.63636364],
+                       [0.        ,  0.25      ,  0.        ]])
+
+        sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, F=self.G)
+        Z, A, __,__, G_con, F = sut.lsc()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(G_con0, G_con, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+    def test_itc(self):
+        """ Tests Industry Technology Construct on SuUT"""
+
+        Z0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.75      ],
+                       [2.66666667,  4.08333333,  0.        ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.33333333,  0.81666667,  0.        ]])
+
+
+        G_con0 = np.array([[6.66666667,  22.33333333,  18.        ],
+                           [0.        ,   1.        ,   0.        ]])
+
+
+
+        F0 = np.array([[3.33333333,  4.46666667,  1.63636364],
+                       [0.        ,  0.2       ,  0.        ]])
+
+
+        sut = SUT(U=self.Uu, V=self.V, F=self.G)
+        Z, A, G_con, F = sut.itc()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(G_con0, G_con, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+    def test_btc_nonsquare(self):
+        """ Tests Byproduct Technology Construct on non-square SuUT"""
+
+        Z0 = np.array([[0.  ,  0.  ,  0.  ],
+                       [-1.  ,  0.  ,  0.75],
+                       [4.  ,  2.75,  0.  ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [-0.5      ,  0.        ,  0.06818182],
+                       [2.        ,  0.6875    ,  0.        ]])
+
+        G_con0 = np.array([[10.,  19.,  18.],
+                           [0.,   1.,   0.]])
+
+        F0 = np.array([[5.        ,  4.75      ,  1.63636364],
+                       [0.        ,  0.25      ,  0.        ]])
+
+        sut = SUT(U=self.Uu, V=self.V, F=self.G, E_bar=self.E_bar)
+        Z, A, G_con, F = sut.btc()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(G_con0, G_con, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+    def test_btc_square(self):
+        """Tests Byproduct Technology Construct on square SuUT"""
+
+        Z0 = np.array([[0.  ,  0.  ,  0.  ],
+                       [-1.  ,  0.  ,  0.75],
+                       [4.  ,  2.75,  0.  ]])
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [-0.5       ,  0.        ,  0.06818182],
+                       [2.        ,  0.6875    ,  0.        ]])
+
+        G_con0 = np.array([[10.,  19.,  18.],
+                           [0.,   1.,   0.]])
+
+        F0 = np.array([[5.        ,  4.75      ,  1.63636364],
+                       [0.        ,  0.25      ,  0.        ]])
+
+        sut = SUT(U=self.Ua, V=self.Va, F=self.Ga)
+        Z, A, G_con, F = sut.btc()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(G_con0, G_con, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
+
+
+    def test_ctc(self):
+        """ Tests Commodity Technology Construct on square SuUT"""
+
+        Z0 = np.array([[0.    ,  0.    ,  0.    ],
+                       [0.    ,  0.    ,  0.75  ],
+                       [3.3125,  3.4375,  0.    ]])
+
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.65625   ,  0.6875    ,  0.        ]])
+
+
+        G_con0 = np.array([[5.25,  23.75,  18.  ],
+                           [-0.25,   1.25,   0.  ]])
+
+
+        F0 = np.array([[2.625     ,  4.75      ,  1.63636364],
+                       [-0.125     ,  0.25      ,  0.        ]])
+
+        sut = SUT(U=self.Ua, V=self.Va, F=self.Ga)
+        Z, A, G_con, F = sut.ctc()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(G_con0, G_con, atol=self.atol)
+        npt.assert_allclose(F0, F, atol=self.atol)
 
 if __name__ == '__main__':
     unittest.main()
