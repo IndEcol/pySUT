@@ -749,7 +749,7 @@ class SUT(object):
         return self.S_ITC_cxc        
 
 
-    def pc_agg(self):
+    def pc_agg(self, keep_fullsize=True):
         """Performs Partition Aggregation Construct of SuUT inventory
 
         Parameters
@@ -780,19 +780,19 @@ class SUT(object):
 
         # Partitioning of product flows
         Z = self.U.dot(self.PHI)  # <-- eq:PCagg
-        (A, nn_in, nn_out) = matrix_norm(Z, self.V)
+        (A, nn_in, nn_out) = matrix_norm(Z, self.V, keep_fullsize)
 
         # Partitioning of environmental extensions
-        if self.F.size:
+        if self.F is not None:
             F_con = self.F.dot(self.PHI)  # <-- eq:PCEnvExt
 
             # Normalize environmental extension
-            (S_con, _, _) = matrix_norm(F_con, self.V)
+            (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
 
         return (Z, A, nn_in, nn_out, F_con, S_con)
 
 
-    def psc_agg(self):
+    def psc_agg(self, keep_fullsize=True):
         """Performs Product Substitution aggregation Construct of SuUT inventory
 
         Parameters
@@ -814,29 +814,26 @@ class SUT(object):
         """
 
         # Default values
-        #G_con = np.empty(0)
-        #F = np.empty(0)
-
-        # Basic variables
-        #(V_tild, V_bar, _, _) = _rank_products(E_bar, V)
+        F_con = np.empty(0)
+        S_con = np.empty(0)
 
         # Construction of Product Flows
         Z = (self.U - self.Xi.dot(self.V_tild())).dot(self.E_bar.T)  # <-- eq:PSCagg
         # Normalizing
-        (A, nn_in, nn_out) = matrix_norm(Z, self.V_bar())
+        (A, nn_in, nn_out) = matrix_norm(Z, self.V_bar(), keep_fullsize)
 
         # Allocation of Environmental Extensions
-        if self.F.size:
+        if self.F is not None:
             F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
 
             # Normalization
-            (F_norm, _, _) = matrix_norm(F_con, self.V_bar())
+            (S_con, _, _) = matrix_norm(F_con, self.V_bar(), keep_fullsize)
 
         # Return allocated values
-        return(Z, A, nn_in, nn_out, F_con, F_norm)
+        return(Z, A, nn_in, nn_out, F_con, S_con)
 
 
-    def aac_agg(self, nmax=np.Inf):
+    def aac_agg(self, nmax=np.Inf, keep_fullsize=True):
         """ Alternative Activity aggregation Construct of SuUT inventory
 
         Parameters
@@ -875,14 +872,14 @@ class SUT(object):
         Z = (self.U - A_gamma.dot(V_tild)).dot(self.E_bar.T) + \
                 A_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACagg
 
-        (A, nn_in, nn_out) = matrix_norm(Z, self.V)
+        (A, nn_in, nn_out) = matrix_norm(Z, self.V, keep_fullsize)
 
         # Partitioning of environmental extensions
         if self.F.size:
             F_gamma = self.alternate_tech(self.F, nmax)
             F_con = (self.F - F_gamma.dot(V_tild)).dot(self.E_bar.T) + \
                     F_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACEnvExt
-            (S_con, _, _) = matrix_norm(F_con, self.V)
+            (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
 
     #   Output
         return(Z, A, nn_in, nn_out, F_con, S_con)
@@ -890,7 +887,7 @@ class SUT(object):
     ##############################################################################
 
 
-    def lsc(self):
+    def lsc(self, keep_fullsize=True):
         """ Performs Lump-sum aggregation Construct of SuUT inventory
 
         Parameters
@@ -919,13 +916,13 @@ class SUT(object):
         Z = self.U.dot(self.E_bar.T)  # <-- eq:LSCagg
         V_dd = self.E_bar.dot(ddiag(self.g_V()))  # <-- eq:LSCagg
         # Normalizing
-        (A, nn_in, nn_out) = matrix_norm(Z, V_dd)
+        (A, nn_in, nn_out) = matrix_norm(Z, V_dd, keep_fullsize)
 
         # Allocation of Environmental Extensions
-        if self.F.size:
+        if self.F is not None:
             F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
             # Normalization
-            (S_con, _, _) = matrix_norm(F_con, V_dd)
+            (S_con, _, _) = matrix_norm(F_con, V_dd, keep_fullsize)
 
         # Return allocated values
         return(Z, A, nn_in, nn_out, F_con, S_con)
@@ -934,7 +931,7 @@ class SUT(object):
     ###############################################################################
     # SPECIAL CASES
 
-    def itc(self):
+    def itc(self, keep_fullsize=True):
         """Performs Industry Technology Construct of SuUT inventory
 
         Parameters
@@ -956,16 +953,16 @@ class SUT(object):
         S_con = np.empty(0)
 
         Z = self.U.dot(diaginv(self.g_V())).dot(self.V.T)  # <-- eq:itc
-        (A, _, _) = matrix_norm(Z, self.V)
+        (A, _, _) = matrix_norm(Z, self.V, keep_fullsize)
 
-        if self.F.size:
+        if self.F is not None:
             F_con = self.F.dot(diaginv(self.g_V())).dot(self.V.T)  # <-- eq:ITCEnvExt
-            (S_con, _, _) = matrix_norm(F_con, self.V)
+            (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
 
         return(Z, A, F_con, S_con)
 
 
-    def ctc(self):
+    def ctc(self, keep_fullsize=True):
         """Performs Commodity Technology Construct of SuUT inventory
 
         Parameters
@@ -989,13 +986,13 @@ class SUT(object):
         A = self.U.dot(np.linalg.inv(self.V))  # <-- eq:ctc
         Z = A.dot(ddiag(self.q_V()))
 
-        if self.F.size:
+        if self.F is not None:
             S_con = self.F.dot(np.linalg.inv(self.V))
             F_con = S_con.dot(ddiag(self.q_V()))  # <--eq:CTCEnvExt
         return(Z, A, F_con, S_con)
 
 
-    def btc(self):
+    def btc(self, keep_fullsize=True):
         """Performs Byproduct Technology Construct of SuUT inventory
         Parameters
         ----------
@@ -1024,11 +1021,11 @@ class SUT(object):
 
         # The construct
         Z = (self.U - self.V_tild()).dot(E_bar.T)  # <-- eq:btc
-        (A, _, _) = matrix_norm(Z, self.V_bar())
+        (A, _, _) = matrix_norm(Z, self.V_bar(), keep_fullsize)
 
-        if self.F.size:
+        if self.F is not None:
             F_con = self.F.dot(E_bar.T)  # <-- eq:NonProdBalEnvExt
-            (S_con, _, _) = matrix_norm(F_con, self.V_bar())
+            (S_con, _, _) = matrix_norm(F_con, self.V_bar(), keep_fullsize)
         return(Z, A, F_con, S_con)
 
     """ HELPER FUNCTIONS"""
@@ -1170,7 +1167,7 @@ def collapse_dims(x, first2dimensions=False):
     return z
 
 
-def matrix_norm(Z, V):
+def matrix_norm(Z, V, keep_fullsize=False):
     """ Normalizes a flow matrix, even if some rows and columns are null
 
     Parameters
@@ -1179,6 +1176,9 @@ def matrix_norm(Z, V):
         dimensions : [com, com] | [com, ind,com] | [ind,com,ind,com]
     V : Production volume with which flows are normalized
         [com, ind]
+
+    keep_fullsize: Do not remove empty rows and columns from A, leave with
+                   zeros. [Default, false, don't do it]
 
     Returns
     --------
@@ -1221,8 +1221,16 @@ def matrix_norm(Z, V):
         nn_out = np.ones(np.size(Z, 1), dtype=bool)
         A = Z.dot(np.linalg.inv(ddiag(q_tr)))
 
+    if keep_fullsize:
+        A0 = np.zeros([Z.shape[0], A.shape[1]])
+        A1 = np.zeros_like(Z)
+        A0[nn_in, :] = A
+        A1[:, nn_out] = A0
+        A = A1
+
     # Return
     return (A, nn_in, nn_out)
+
 
 def diaginv(x):
     """Diagonalizes a vector and inverses it, even if it contains zero values.

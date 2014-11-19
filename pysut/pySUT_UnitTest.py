@@ -220,67 +220,6 @@ mySUT5.aggregate_rearrange_products(PA,PR)
 ###############################################################################
 """Unit Test Class"""
 class KnownResults(unittest.TestCase):    
-    def setUp(self):
-        # Case 0: 3 regions, 2 industries, 2 products (square) 
-        self.V_3r2i2p = np.array(
-                      #I   J     I   J       I   J
-                     [[9., 0.,   0., 0.,     0., 0.],    # i
-                      [3., 3.,   0., 0.,     0., 0.],    # j
-                                                         #
-                      [0., 0.,   4., 4.,     0., 0.],    # i
-                      [0., 0.,   0., 0.,     0., 0.],    # j  <-- no production
-                                                         #
-                      [0., 0.,   0., 0.,     2., 0.],    # i
-                      [0., 0.,   0., 0.,     1., 2.]])   # j
-                     #               ^
-                     #               |
-                     #               "Fake J", does not produce j, prim prod i
-
-        self.E_bar_3r2i2p = np.array(
-                         [[1, 0, 0, 0, 0, 0],
-                          [0, 1, 0, 0, 0, 0],
-                          [0, 0, 1, 1, 0, 0],
-                          [0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 1, 0],
-                          [0, 0, 0, 0, 0, 1]])
-
-        # Case 1: 3 regions, 2 industries, 3 products:
-        #--------------------------------------------
-
-        # No production of j in Canada
-        # No product of i or k in Norway
-        # No product of j in US
-
-        self.V_3r2i3p = np.array([
-                         #   Ca   Ca     No   No     US   US
-                         #   I    J      I    J      I    J
-                         [   4.,  0.,    0.,  0.,    0.,  0.,  ],     #i  Ca
-                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  Ca
-                         [   0.,  3.,    0.,  0.,    0.,  0.,  ],     #k  Ca
-                         #
-                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #i  No
-                         [   0.,  0.,    3.,  0.,    0.,  0.,  ],     #j  No
-                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #k  No
-                         #
-                         [   0.,  0.,    0.,  0.,    8.,  0.,  ],     #i  US
-                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  US
-                         [   0.,  0.,    0.,  0.,    0.,  9.,  ]])    #k  US
-
-        self.E_bar_3r2i3p = np.array([
-                         #   Ca   Ca     No   No     US   US
-                         #   I    J      I    J      I    J
-                         [   1,  0,    0,  0,    0,  0,  ],     #i  Ca
-                         [   0,  0,    0,  0,    0,  0,  ],     #j  Ca
-                         [   0,  1,    0,  0,    0,  0,  ],     #k  Ca
-                         #
-                         [   0,  0,    0,  0,    0,  0,  ],     #i  No
-                         [   0,  0,    1,  0,    0,  0,  ],     #j  No
-                         [   0,  0,    0,  0,    0,  0,  ],     #k  No
-                         #
-                         [   0,  0,    0,  0,    1,  0,  ],     #i  US
-                         [   0,  0,    0,  0,    0,  0,  ],     #j  US
-                         [   0,  0,    0,  0,    0,  1,  ]])    #k  US
-
     def test_SUT_balances(self):
         """Test simple balances of SUT"""
         np.testing.assert_array_almost_equal(mySUT.compare_IndustrialUseAndSupply(),IndSupply_Use,9)
@@ -329,101 +268,6 @@ class KnownResults(unittest.TestCase):
         np.testing.assert_array_equal(mySUT5.V,V_res)   
         np.testing.assert_array_equal(mySUT5.Y,Y_res)         
         np.testing.assert_array_equal(mySUT5.F,F_res)         
-
-    def test_generate_mainproduct_matrix_simpleExclusiveProd(self):
-
-        V = np.array([[1.4, 0, 0,  12],
-                      [5.,  3, 6., 0],
-                      [0,   0, 0,  0.1],
-                      [0,   0, 0,  0]])
-        sut = SUT(V=V)
-        sut.generate_mainproduct_matrix()
-        E_bar0 = np.array([[1, 0, 0, 0],
-                           [0, 1, 1, 0],
-                           [0, 0, 0, 1],
-                           [0, 0, 0, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-        sut.generate_mainproduct_matrix(prefer_exclusive=False)
-        E_bar0 = np.array([[1, 0, 0, 1],
-                           [0, 1, 1, 0],
-                           [0, 0, 0, 0],
-                           [0, 0, 0, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-
-    def test_generate_mainproduct_matrix_notsquare(self):
-
-        V = np.array([[1.4, 0, 0,  12,  0],
-                      [5.,  3, 6., 0,   0],
-                      [0,   0, 0,  0.1, 0],
-                      [0,   0, 0,  0,   0]])
-        sut = SUT(V=V)
-
-        sut.generate_mainproduct_matrix()
-        E_bar0 = np.array([[0, 0, 0, 0, 0],
-                           [1, 1, 1, 0, 0],
-                           [0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-        sut.generate_mainproduct_matrix(prefer_exclusive=False)
-        E_bar0 = np.array([[0, 0, 0, 1, 0],
-                           [1, 1, 1, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-    def test_generate_mainproduct_matrix_multipleExclusive(self):
-
-        V = np.array([[1.4, 0, 0,  12,  0],
-                      [5.,  3, 6., 0,   0],
-                      [0,   0, 0,  0.1, 0],
-                      [0,   0, 0,  0,   0],
-                      [0,   0, 0,  0.2, 0]])
-        sut = SUT(V=V)
-
-        sut.generate_mainproduct_matrix()
-        E_bar0 = np.array([[1, 0, 0, 0, 0],
-                           [0, 1, 1, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 1, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-        sut.generate_mainproduct_matrix(prefer_exclusive=False)
-        E_bar0 = np.array([[1, 0, 0, 1, 0],
-                           [0, 1, 1, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-    def test_generate_mainproduct_matrix_negatives(self):
-
-        # native value, should not alter results
-        V = np.array([[1.4, 0, 0,  12,   0],
-                      [5.,  3, 6., 0,    0],
-                      [0,   0, 0,  0.1,  0],
-                      [0,   0, 0,  0,    0],
-                      [0,   0, 0,  -0.2, 0]])
-        sut = SUT(V=V)
-
-        sut.generate_mainproduct_matrix()
-        E_bar0 = np.array([[1, 0, 0, 0, 0],
-                           [0, 1, 1, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0],
-                           [0, 0, 0, 1, 0]])
-        npt.assert_array_equal(E_bar0, sut.E_bar)
-
-    def test_generate_mainproduct_matrix_3reg2ind3prod(self):
-
-        # native value, should not alter results
-        sut = SUT(V=self.V_3r2i3p)
-
-        sut.generate_mainproduct_matrix()
-        npt.assert_array_equal(self.E_bar_3r2i3p, sut.E_bar)
 
     def test_aggregate_regions_vectorised_rowsAndColumns(self):
         U = np.arange(54).reshape((9,6))
@@ -517,99 +361,6 @@ class KnownResults(unittest.TestCase):
                        [ 0.6,  0. ]])
 
         npt.assert_array_equal(D0,D)
-
-    def test_generate_Xi_square3regions(self):
-
-                        #i  j    i  j       i  j
-        Xi0 = np.array([[1, 0,   0, 0,      0, 0],       #i
-                        [0, 1,   0, 3/5,    0, 0],       #j
-                                                         #
-                        [0, 0,   1, 0,      0, 0],       #i
-                        [0, 0,   0, 0,      0, 0],       #j
-                                                         #
-                        [0, 0,   0, 0,      1, 0],       #i
-                        [0, 0,   0, 2/5,    0, 1]])      #j
-
-        sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
-        sut.multiregion_Xi()
-
-
-        npt.assert_allclose(Xi0, sut.Xi)
-
-    def test_generate_Xi_3reg2ind3prod(self):
-
-
-        # No production of j in Canada
-        # No product of i or k in Norway
-        # No product of j in US
-
-        # j primarily produced only in Norway, any 2nd prod of j diplaces j_No
-        # No prod i in Norway displaces world mix (1:2 Ca:USA)
-        # No prod k in Norway, displaces world mix (1:3 Ca:USA)
-
-
-        Xi0 = np.array([
-                         #   Ca   Ca  Ca No  No No   US  US US
-                         #   i   j  k    i      j  k       i   j  k
-                         [   1,  0, 0,   1./3,  0, 0,      0,  0, 0 ],     #i  Ca
-                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #j  Ca
-                         [   0,  0, 1,   0,     0, 1./4,   0,  0, 0 ],     #k  Ca
-                         #
-                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #i  No
-                         [   0,  1, 0,   0,     1, 0,      0,  1, 0 ],     #j  No
-                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #k  No
-                         #
-                         [   0,  0, 0,   2./3,  0, 0,      1,  0, 0 ],     #i  US
-                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #j  US
-                         [   0,  0, 0,   0,     0, 3./4,   0,  0, 1 ]])    #k  US
-
-        sut = SUT(V=self.V_3r2i3p, E_bar=self.E_bar_3r2i3p, regions=3)
-        sut.multiregion_Xi()
-
-        npt.assert_allclose(Xi0, sut.Xi)
-
-    def test_generate_Gamma_square3regions(self):
-
-        Gamma0 = np.array(
-                        #i  j    i    j      i  j
-                       [[1, 0,   0,   0,     0, 0],     # I
-                        [0, 1,   0,   3/5,   0, 0],     # J
-                                                        #
-                        [0, 0,   0.5, 0,     0, 0],     # I
-                        [0, 0,   0.5, 0,     0, 0],     # J
-                                                        #
-                        [0, 0,   0,   0,     1, 0],     # I
-                        [0, 0,   0,   2/5,   0, 1]])    # J
-
-        sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
-        sut.build_multiregion_Gamma()
-
-        npt.assert_allclose(Gamma0, sut.Gamma)
-
-    def test_generate_Gamma_3reg2ind3prod(self):
-
-
-        # Sole producer of j is I_No (not J_No), pick that one
-        # i_No assume tech of I_Ca and I_US (1:2)
-        # k_No assume tech of J_Ca and J_US (1:3)
-
-        Gamma0 = np.array([
-                         #   Ca   Ca  Ca No  No No      US  US US
-                         #   i  j  k    i     j  k       i  j  k
-                         [   1, 0, 0,   1./3, 0, 0,      0, 0, 0 ],    #I  Ca
-                         [   0, 0, 1,   0,    0, 1./4,   0, 0, 0 ],    #J  Ca
-                         #
-                         [   0, 1, 0,   0,    1, 0,      0, 1, 0 ],    #I  No
-                         [   0, 0, 0,   0,    0, 0,      0, 0, 0 ],    #J  No
-                         #
-                         [   0, 0, 0,   2./3, 0, 0,      1, 0, 0 ],    #I  US
-                         [   0, 0, 0,   0,    0, 3./4,   0, 0, 1 ]])   #J  US
-
-        sut = SUT(V=self.V_3r2i3p, E_bar=self.E_bar_3r2i3p, regions=3)
-        sut.build_multiregion_Gamma()
-        npt.assert_allclose(Gamma0, sut.Gamma)
-
-
 
 class TestAllocationsConstructs(unittest.TestCase):
     """ Unit test class for allocations and constructs"""
@@ -716,8 +467,99 @@ class TestAllocationsConstructs(unittest.TestCase):
         self.Ua = self.Uu.dot(self.E_bar.T)
         self.Ga = self.G.dot(self.E_bar.T)
 
+        # Case 1: 3 regions, 2 industries, 2 products (square) 
+        self.V_3r2i2p = np.array(
+                      #I   J     I   J       I   J
+                     [[9., 0.,   0., 0.,     0., 0.],    # i
+                      [3., 3.,   0., 0.,     0., 0.],    # j
+                                                         #
+                      [0., 0.,   4., 4.,     0., 0.],    # i
+                      [0., 0.,   0., 0.,     0., 0.],    # j  <-- no production
+                                                         #
+                      [0., 0.,   0., 0.,     2., 0.],    # i
+                      [0., 0.,   0., 0.,     1., 2.]])   # j
+                     #               ^
+                     #               |
+                     #               "Fake J", does not produce j, prim prod i
+
+        self.E_bar_3r2i2p = np.array(
+                         [[1, 0, 0, 0, 0, 0],
+                          [0, 1, 0, 0, 0, 0],
+                          [0, 0, 1, 1, 0, 0],
+                          [0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 1, 0],
+                          [0, 0, 0, 0, 0, 1]])
+
+        # Case 2: 3 regions, 2 industries, 3 products:
+        #--------------------------------------------
+
+        # No production of j in Canada
+        # No production of i or k in Norway
+        # No production of j in US
+
+        self.V_3r2i3p = np.array([
+                         #   Ca   Ca     No   No     US   US
+                         #   I    J      I    J      I    J
+                         [   4.,  0.,    0.,  0.,    0.,  0.,  ],     #i  Ca
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  Ca
+                         [   0.,  3.,    0.,  0.,    0.,  0.,  ],     #k  Ca
+                         #
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #i  No
+                         [   0.,  0.,    3.,  0.,    0.,  0.,  ],     #j  No
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #k  No
+                         #
+                         [   0.,  0.,    0.,  0.,    8.,  0.,  ],     #i  US
+                         [   0.,  0.,    0.,  0.,    0.,  0.,  ],     #j  US
+                         [   0.,  0.,    0.,  0.,    0.,  9.,  ]])    #k  US
+
+        self.V_3r2i3p_coprod = self.V_3r2i3p.copy()
+        self.V_3r2i3p_coprod[1,0] = 1 # I Ca coproduces j
+        self.V_3r2i3p_coprod[-1,4] = 1 # I US coproduces k
+
+        self.E_bar_3r2i3p = np.array([
+                         #
+                         #  J_No des not produce anything, no primary product
+                         #
+                         #   Ca   Ca     No   No     US   US
+                         #   I    J      I    J      I    J
+                         [   1,  0,    0,  0,    0,  0,  ],     #i  Ca
+                         [   0,  0,    0,  0,    0,  0,  ],     #j  Ca
+                         [   0,  1,    0,  0,    0,  0,  ],     #k  Ca
+                         #
+                         [   0,  0,    0,  0,    0,  0,  ],     #i  No
+                         [   0,  0,    1,  0,    0,  0,  ],     #j  No
+                         [   0,  0,    0,  0,    0,  0,  ],     #k  No
+                         #
+                         [   0,  0,    0,  0,    1,  0,  ],     #i  US
+                         [   0,  0,    0,  0,    0,  0,  ],     #j  US
+                         [   0,  0,    0,  0,    0,  1,  ]])    #k  US
 
 
+        self.U_3r2i3p = np.array([
+                         #   Ca  Ca    No  No     US   US
+                         #   I   J     I   J      I    J
+                         [  .0, .1,   .5,  0,    0,  0,  ],     #i  Ca
+                         [   0,  0,    0,  0,    0,  0,  ],     #j  Ca
+                         [  .2, .0,    0,  0,    0,  0,  ],     #k  Ca
+                         #
+                         [   0,  0,    0,  0,    0,  0,  ],     #i  No
+                         [  .3,  0,   .0,  0,   .5,  0,  ],     #j  No
+                         [   0,  0,    0,  0,    0,  0,  ],     #k  No
+                         #
+                         [   0,  0,    0,  0,   .0, .9,  ],     #i  US
+                         [   0,  0,    0,  0,    0,  0,  ],     #j  US
+                         [  .1,  0,   .4,  0,   .5, .0,  ]])    #k  US
+
+        self.Z_3r2i3p= np.array(
+                     [[ 0. ,  0. ,  0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ],
+                      [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                      [ 0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                      [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                      [ 0.3,  0. ,  0. ,  0. ,  0. ,  0. ,  0.5,  0. ,  0. ],
+                      [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                      [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0.9],
+                      [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                      [ 0.1,  0. ,  0. ,  0. ,  0.4,  0. ,  0.5,  0. ,  0. ]])
 
     def test_V_bar_tilde(self):
 
@@ -775,6 +617,198 @@ class TestAllocationsConstructs(unittest.TestCase):
 
 
 
+    def test_generate_mainproduct_matrix_simpleExclusiveProd(self):
+
+        V = np.array([[1.4, 0, 0,  12],
+                      [5.,  3, 6., 0],
+                      [0,   0, 0,  0.1],
+                      [0,   0, 0,  0]])
+        sut = SUT(V=V)
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[1, 0, 0, 0],
+                           [0, 1, 1, 0],
+                           [0, 0, 0, 1],
+                           [0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        sut.generate_mainproduct_matrix(prefer_exclusive=False)
+        E_bar0 = np.array([[1, 0, 0, 1],
+                           [0, 1, 1, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+
+    def test_generate_mainproduct_matrix_notsquare(self):
+
+        V = np.array([[1.4, 0, 0,  12,  0],
+                      [5.,  3, 6., 0,   0],
+                      [0,   0, 0,  0.1, 0],
+                      [0,   0, 0,  0,   0]])
+        sut = SUT(V=V)
+
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[0, 0, 0, 0, 0],
+                           [1, 1, 1, 0, 0],
+                           [0, 0, 0, 1, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        sut.generate_mainproduct_matrix(prefer_exclusive=False)
+        E_bar0 = np.array([[0, 0, 0, 1, 0],
+                           [1, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+    def test_generate_mainproduct_matrix_multipleExclusive(self):
+
+        V = np.array([[1.4, 0, 0,  12,  0],
+                      [5.,  3, 6., 0,   0],
+                      [0,   0, 0,  0.1, 0],
+                      [0,   0, 0,  0,   0],
+                      [0,   0, 0,  0.2, 0]])
+        sut = SUT(V=V)
+
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[1, 0, 0, 0, 0],
+                           [0, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 1, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        sut.generate_mainproduct_matrix(prefer_exclusive=False)
+        E_bar0 = np.array([[1, 0, 0, 1, 0],
+                           [0, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+    def test_generate_mainproduct_matrix_negatives(self):
+
+        # native value, should not alter results
+        V = np.array([[1.4, 0, 0,  12,   0],
+                      [5.,  3, 6., 0,    0],
+                      [0,   0, 0,  0.1,  0],
+                      [0,   0, 0,  0,    0],
+                      [0,   0, 0,  -0.2, 0]])
+        sut = SUT(V=V)
+
+        sut.generate_mainproduct_matrix()
+        E_bar0 = np.array([[1, 0, 0, 0, 0],
+                           [0, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 1, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+    def test_generate_mainproduct_matrix_3reg2ind3prod(self):
+
+        # native value, should not alter results
+        sut = SUT(V=self.V_3r2i3p)
+
+        sut.generate_mainproduct_matrix()
+        npt.assert_array_equal(self.E_bar_3r2i3p, sut.E_bar)
+
+        sut = SUT(V=self.V_3r2i3p_coprod)
+        sut.generate_mainproduct_matrix()
+        npt.assert_array_equal(self.E_bar_3r2i3p, sut.E_bar)
+
+    def test_generate_Xi_square3regions(self):
+
+                        #i  j    i  j       i  j
+        Xi0 = np.array([[1, 0,   0, 0,      0, 0],       #i
+                        [0, 1,   0, 3/5,    0, 0],       #j
+                                                         #
+                        [0, 0,   1, 0,      0, 0],       #i
+                        [0, 0,   0, 0,      0, 0],       #j
+                                                         #
+                        [0, 0,   0, 0,      1, 0],       #i
+                        [0, 0,   0, 2/5,    0, 1]])      #j
+
+        sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
+        sut.multiregion_Xi()
+
+
+        npt.assert_allclose(Xi0, sut.Xi)
+
+    def test_generate_Xi_3reg2ind3prod(self):
+
+
+        # No production of j in Canada
+        # No product of i or k in Norway
+        # No product of j in US
+
+        # j primarily produced only in Norway, any 2nd prod of j diplaces j_No
+        # No prod i in Norway displaces world mix (1:2 Ca:USA)
+        # No prod k in Norway, displaces world mix (1:3 Ca:USA)
+
+
+        Xi0 = np.array([
+                         #   Ca   Ca  Ca No  No No   US  US US
+                         #   i   j  k    i      j  k       i   j  k
+                         [   1,  0, 0,   1./3,  0, 0,      0,  0, 0 ],     #i  Ca
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #j  Ca
+                         [   0,  0, 1,   0,     0, 1./4,   0,  0, 0 ],     #k  Ca
+                         #
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #i  No
+                         [   0,  1, 0,   0,     1, 0,      0,  1, 0 ],     #j  No
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #k  No
+                         #
+                         [   0,  0, 0,   2./3,  0, 0,      1,  0, 0 ],     #i  US
+                         [   0,  0, 0,   0,     0, 0,      0,  0, 0 ],     #j  US
+                         [   0,  0, 0,   0,     0, 3./4,   0,  0, 1 ]])    #k  US
+
+        sut = SUT(V=self.V_3r2i3p, E_bar=self.E_bar_3r2i3p, regions=3)
+        sut.multiregion_Xi()
+
+        npt.assert_allclose(Xi0, sut.Xi)
+
+    def test_generate_Gamma_square3regions(self):
+
+        Gamma0 = np.array(
+                        #i  j    i    j      i  j
+                       [[1, 0,   0,   0,     0, 0],     # I
+                        [0, 1,   0,   3/5,   0, 0],     # J
+                                                        #
+                        [0, 0,   0.5, 0,     0, 0],     # I
+                        [0, 0,   0.5, 0,     0, 0],     # J
+                                                        #
+                        [0, 0,   0,   0,     1, 0],     # I
+                        [0, 0,   0,   2/5,   0, 1]])    # J
+
+        sut = SUT(V=self.V_3r2i2p, E_bar=self.E_bar_3r2i2p, regions=3)
+        sut.build_multiregion_Gamma()
+
+        npt.assert_allclose(Gamma0, sut.Gamma)
+
+    def test_generate_Gamma_3reg2ind3prod(self):
+
+
+        # Sole producer of j is I_No (not J_No), pick that one
+        # i_No assume tech of I_Ca and I_US (1:2)
+        # k_No assume tech of J_Ca and J_US (1:3)
+
+        Gamma0 = np.array([
+                         #   Ca   Ca  Ca No  No No      US  US US
+                         #   i  j  k    i     j  k       i  j  k
+                         [   1, 0, 0,   1./3, 0, 0,      0, 0, 0 ],    #I  Ca
+                         [   0, 0, 1,   0,    0, 1./4,   0, 0, 0 ],    #J  Ca
+                         #
+                         [   0, 1, 0,   0,    1, 0,      0, 1, 0 ],    #I  No
+                         [   0, 0, 0,   0,    0, 0,      0, 0, 0 ],    #J  No
+                         #
+                         [   0, 0, 0,   2./3, 0, 0,      1, 0, 0 ],    #I  US
+                         [   0, 0, 0,   0,    0, 3./4,   0, 0, 1 ]])   #J  US
+
+        sut = SUT(V=self.V_3r2i3p, E_bar=self.E_bar_3r2i3p, regions=3)
+        sut.build_multiregion_Gamma()
+        npt.assert_allclose(Gamma0, sut.Gamma)
+
+
+
     def test_psc_agg(self):
         """ Tests Product Substition Construct on SuUT"""
 
@@ -790,7 +824,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, Xi=self.Xi, F=self.G)
-        Z, A, __, __, __, F = sut.psc_agg()
+        Z, A, __, __, __, F = sut.psc_agg(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -827,7 +861,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.2       ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, PSI=self.PSI, F=self.G)
-        Z, A, __, __, G_con, F = sut.pc_agg()
+        Z, A, __, __, G_con, F = sut.pc_agg(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -851,11 +885,91 @@ class TestAllocationsConstructs(unittest.TestCase):
 
         sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, Gamma=self.Gamma,
                   F=self.G)
-        Z, A, __, __, __, F = sut.aac_agg()
+        Z, A, __, __, __, F = sut.aac_agg(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(F0, F, atol=self.atol)
+
+
+    def test_aac_agg_3reg2ind3prod_nocoprod(self):
+        """ The point of this one is to test SuUT where some products are
+        simply not produced, neither as primary nor as secondary flows"""
+
+        sut = SUT(U=self.U_3r2i3p,
+                  V=self.V_3r2i3p,
+                  E_bar=self.E_bar_3r2i3p,
+                  regions=3)
+
+        sut.build_multiregion_Gamma()
+        Z, A, nn_in, nn_out, F, S = sut.aac_agg()
+        npt.assert_allclose(self.Z_3r2i3p, Z, atol=self.atol)
+
+    def test_aac_agg_3reg2ind3prod_coprod(self):
+        """ The point of this one is to test SuUT where some products are
+        simply not produced, neither as primary nor as secondary flows"""
+
+        sut = SUT(U=self.U_3r2i3p,
+                  V=self.V_3r2i3p_coprod,
+                  regions=3)
+        sut.generate_mainproduct_matrix()
+        sut.build_multiregion_Gamma()
+
+        Z, A, nn_in, nn_out, F, S = sut.aac_agg()
+
+        #  Ca_j has same tech as No_I
+        #  US_k has the tech of US_J, which was deduced from (primary) US_i
+        Z0 = np.array([[-1./6, 1./6, 0.1, 0., 0.5, 0.,  0. , 0., 0.],
+                       [ 0.   , 0.   , 0. , 0., 0. , 0.,  0. , 0., 0.],
+                       [ 0.2  , 0.   , 0. , 0., 0. , 0.,  0. , 0., 0.],
+                       [ 0.   , 0.   , 0. , 0., 0. , 0.,  0. , 0., 0.],
+                       [ 0.3  , 0.   , 0. , 0., 0. , 0.,  0.5, 0., 0.],
+                       [ 0.   , 0.   , 0. , 0., 0. , 0.,  0. , 0., 0.],
+                       [ 0.   , 0.   , 0. , 0., 0. , 0., -0.1, 0., 1.],
+                       [ 0.   , 0.   , 0. , 0., 0. , 0.,  0. , 0., 0.],
+                       [-1./30, 2./15, 0. , 0., 0.4, 0.,  0.5, 0., 0.]]
+                     )
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+
+    def test_psc_agg_3reg2ind3prod_coprod(self):
+        """ The point of this one is to test SuUT where some products are
+        simply not produced, neither as primary nor as secondary flows"""
+
+        sut = SUT(U=self.U_3r2i3p,
+                  V=self.V_3r2i3p_coprod,
+                  regions=3)
+        sut.generate_mainproduct_matrix()
+        sut.multiregion_Xi()
+
+        Z, A, nn_in, nn_out, F, S = sut.psc_agg()
+        # Ca_j production (secondary to Ca_i) displaces No_j
+        # Us_k production (secondary to US_i) displaces US_k
+        Z0 = np.array([[ 0. ,  0. ,  0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ],
+                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                       [ 0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                       [-0.7,  0. ,  0. ,  0. ,  0. ,  0. ,  0.5,  0. ,  0. ],
+                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0.9],
+                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+                       [ 0.1,  0. ,  0. ,  0. ,  0.4,  0. , -0.5,  0. ,  0. ]])
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+
+    def test_psc_agg_3reg2ind3prod_nocoprod(self):
+        """ The point of this one is to test SuUT where some products are
+        simply not produced, neither as primary nor as secondary flows"""
+
+        sut = SUT(U=self.U_3r2i3p,
+                  V=self.V_3r2i3p,
+                  E_bar=self.E_bar_3r2i3p,
+                  regions=3)
+
+        sut.multiregion_Xi()
+        Z, A, nn_in, nn_out, F, S = sut.psc_agg()
+        npt.assert_allclose(self.Z_3r2i3p, Z, atol=self.atol)
+
 
 
     def test_lsc(self):
@@ -876,7 +990,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, F=self.G)
-        Z, A, __,__, G_con, F = sut.lsc()
+        Z, A, __,__, G_con, F = sut.lsc(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -905,7 +1019,7 @@ class TestAllocationsConstructs(unittest.TestCase):
 
 
         sut = SUT(U=self.Uu, V=self.V, F=self.G)
-        Z, A, G_con, F = sut.itc()
+        Z, A, G_con, F = sut.itc(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -930,7 +1044,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, F=self.G, E_bar=self.E_bar)
-        Z, A, G_con, F = sut.btc()
+        Z, A, G_con, F = sut.btc(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -955,7 +1069,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Ua, V=self.Va, F=self.Ga)
-        Z, A, G_con, F = sut.btc()
+        Z, A, G_con, F = sut.btc(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -984,12 +1098,30 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [-0.125     ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Ua, V=self.Va, F=self.Ga)
-        Z, A, G_con, F = sut.ctc()
+        Z, A, G_con, F = sut.ctc(keep_fullsize=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(G_con0, G_con, atol=self.atol)
         npt.assert_allclose(F0, F, atol=self.atol)
+
+    def test_BTC_construct_compatibility(self):
+        """Test the A and S matrices for the BTC construct."""
+        _, A, _, S = mySUT3.btc() 
+        np.testing.assert_array_almost_equal(mySUT3.Build_BTC_A_matrix(),A_BTC,8) 
+        np.testing.assert_array_almost_equal(mySUT3.Build_BTC_S(),S_BTC,9) 
+        
+    def test_CTC_construct_compatibility(self):
+        """Test the A and S matrices for the CTC construct."""
+        _, A, _, S = mySUT3.ctc() 
+        np.testing.assert_array_almost_equal(A,A_CTC_cxc,8) 
+        np.testing.assert_array_almost_equal(S,S_CTC,9) 
+        
+    def test_ITC_construct(self):
+        """Test the A and S matrices for the CTC construct."""
+        _, A, _, S = mySUT3.itc() 
+        np.testing.assert_array_almost_equal(A,A_ITC_cxc,8) 
+        np.testing.assert_array_almost_equal(S,S_ITC,9)         
 
 if __name__ == '__main__':
     unittest.main()
