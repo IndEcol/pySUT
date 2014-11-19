@@ -428,7 +428,7 @@ class SUT(object):
     Modify tables
     """
 
-    def generate_mainproduct_matrix(self, prefer_exclusive=True):
+    def build_E_bar(self, prefer_exclusive=True):
         """ Determine E_bar based on V, indentifying each primary supply flow
 
         Makes a best guess at the primary production flow of each industry. If
@@ -541,7 +541,7 @@ class SUT(object):
 
         return D
 
-    def multiregion_Xi(self):
+    def build_mr_Xi(self):
         """ Define Product subtitutability matrix for multiregional system
 
         By default, products displace identica products produced in the same
@@ -589,7 +589,7 @@ class SUT(object):
         # Put all together and return to self
         self.Xi = Xi + Xi_glob
 
-    def build_multiregion_Gamma(self):
+    def build_mr_Gamma(self):
 
         V_bar = self.V_bar()
         e_tild = np.array(self.E_bar.sum(1) == 0, int)
@@ -775,7 +775,7 @@ class SUT(object):
 
         # Partitioning properties and coefficients
         if self.PHI is None:
-            self.pa_coeff()
+            self.__pa_coeff()
 
         # Partitioning of product flows
         Z = self.U.dot(self.PHI)  # <-- eq:PCagg
@@ -808,8 +808,8 @@ class SUT(object):
         A : Normalized technical requirements [com,com]
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
-        G_con : Constructed emissions [ext,com]
-        F : Normalized, constructed emissions [ext, com]
+        F_con : Constructed emissions [ext,com]
+        S : Normalized, constructed emissions [ext, com]
         """
 
         # Default values
@@ -865,7 +865,7 @@ class SUT(object):
         V_tild = self.V_tild()
 
         # Calculate competing technology requirements
-        A_gamma, F_gamma = self._alternate_tech(nmax)
+        A_gamma, F_gamma = self.__alternate_tech(nmax)
 
         # Allocation step
         Z = (self.U - A_gamma.dot(V_tild)).dot(self.E_bar.T) + \
@@ -1027,7 +1027,7 @@ class SUT(object):
         return(Z, A, F_con, S_con)
 
     """ HELPER FUNCTIONS"""
-    def pa_coeff(self):
+    def __pa_coeff(self):
         """Calculates partition coefficients from supply and properties table
 
         Parameters
@@ -1054,7 +1054,7 @@ class SUT(object):
 
 
 
-    def _alternate_tech(self, nmax=np.Inf, lay=None, res_tol=1e-30):
+    def __alternate_tech(self, nmax=np.Inf, lay=None, res_tol=1e-30):
         """Compilation of Alternate Technologies for use in AAA and AAC models
 
         Parameters
@@ -1148,7 +1148,8 @@ class SUT(object):
 
         return(A_gamma, S_gamma)
 
-
+#
+# Helper functions outside object
 def collapse_dims(x, first2dimensions=False):
     """Collapse 3-d or 4-d array in two dimensions
 
