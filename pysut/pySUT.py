@@ -591,17 +591,16 @@ class SUT(object):
 
     def build_multiregion_Gamma(self):
 
-        X = self.V_bar().T
-        X = self._aggregate_regions_vectorised(X, axis=1)
-        qbar = X.sum(axis=0)
-        D = X.dot(diaginv(qbar))
-        D_glo = np.kron(np.ones(self.regions), D)
-
+        V_bar = self.V_bar()
         e_tild = np.array(self.E_bar.sum(1) == 0, int)
-        D_tild = D_glo.dot(ddiag(e_tild))
-        
-        qbarmr = self.V_bar().sum(1)
-        Dbar = self.V_bar().T.dot(diaginv(qbarmr))
+
+
+        X = self._aggregate_regions_vectorised(V_bar.T, axis=1)
+        D = X.dot(diaginv(X.sum(axis=0)))
+
+        D_tild = np.kron(np.ones(self.regions), D).dot(ddiag(e_tild))
+
+        Dbar = V_bar.T.dot(diaginv(V_bar.sum(1)))
 
         self.Gamma = D_tild + Dbar
 
@@ -866,7 +865,7 @@ class SUT(object):
         V_tild = self.V_tild()
 
         # Calculate competing technology requirements
-        A_gamma = self.alternate_tech(self.U, nmax)
+        A_gamma, F_gamma = self._alternate_tech(nmax)
 
         # Allocation step
         Z = (self.U - A_gamma.dot(V_tild)).dot(self.E_bar.T) + \
@@ -875,8 +874,7 @@ class SUT(object):
         (A, nn_in, nn_out) = matrix_norm(Z, self.V, keep_fullsize)
 
         # Partitioning of environmental extensions
-        if self.F.size:
-            F_gamma = self.alternate_tech(self.F, nmax)
+        if self.F is not None:
             F_con = (self.F - F_gamma.dot(V_tild)).dot(self.E_bar.T) + \
                     F_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACEnvExt
             (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
@@ -1056,7 +1054,7 @@ class SUT(object):
 
 
 
-    def alternate_tech(self, X, nmax=np.Inf, lay=None):
+    def _alternate_tech(self, nmax=np.Inf, lay=None, res_tol=1e-30):
         """Compilation of Alternate Technologies for use in AAA and AAC models
 
         Parameters
@@ -1102,36 +1100,53 @@ class SUT(object):
         mo = np.array(np.sum(self.V != 0, 0) != 1, dtype=int)
 
         invg = diaginv(self.g_V())
-        M = V_tild.dot(np.linalg.inv(ddiag(e_com.dot(V_bar))))
-        # Prepare summation term used in definition of A_gamma
+        M = V_tild.dot(diaginv(e_com.dot(V_bar)))
+
+        # Iteration 0: Prepare summation term used in definition of A_gamma
         n = 0
         tier = -1 * Gamma.dot(M)
-        tier_n = np.linalg.matrix_power(tier, 0)   # simplifies to identity matrix
+        tier_n = np.linalg.matrix_power(tier, n)   # simplifies to identity matrix
         theSum = tier_n.dot(Gamma)
         n = n + 1
-        while np.sum(tier_n) != 0 and n <= nmax:
+        res = np.sum(tier_n)
+
+        # Iterations 1 to nmax
+        while ((res >= res_tol) or (res < 0)) and (n <= nmax):
             tier_n = tier_n.dot(tier)
-            theSum = theSum + tier_n.dot(Gamma)
+            theSum += tier_n.dot(Gamma)
             n += 1
-        if not traceable:
-            B = X.dot(invg)
-            B_so = B.dot(ddiag(so))
+            res = np.sum(tier_n)
+            print("residual:{}".format(res))
+        print("number of iterations:{}".format(n))
 
-            N = X.dot(np.linalg.inv(ddiag(e_com.dot(V_bar))))
-            N_so = N.dot(ddiag(mo))
+        def apply_to_requirements(X):
+            if not traceable:
+                B = X.dot(invg)
+                B_so = B.dot(ddiag(so))
 
-            A_gamma = (B_so + N_so).dot(theSum)
+                N = X.dot(diaginv(e_com.dot(V_bar)))
+                N_so = N.dot(ddiag(mo))
 
+                X_gamma = (B_so + N_so).dot(theSum)
+
+            else:
+                X_gamma = np.zeros([org, com, com])
+                for I in range(org):
+                    Bo = X[I, :, :].dot(invg)
+                    Bo_so = Bo.dot(ddiag(so))
+                    No = X[I, :, :].dot(diaginv(e_com.dot(V_bar)))
+                    No_mo = No.dot(ddiag(mo))
+                    X_gamma[I, :, :] = (Bo_so + No_mo).dot(theSum)
+
+            return X_gamma
+
+        A_gamma = apply_to_requirements(self.U)
+        if self.F is not None:
+            S_gamma = apply_to_requirements(self.F)
         else:
-            A_gamma = np.zeros([org, com, com])
-            for I in range(org):
-                Bo = X[I, :, :].dot(invg)
-                Bo_so = Bo.dot(ddiag(so))
-                No = X[I, :, :].dot(np.linalg.inv(ddiag(e_com.dot(V_bar))))
-                No_mo = No.dot(ddiag(mo))
-                A_gamma[I, :, :] = (Bo_so + No_mo).dot(theSum)
+            S_gamma = np.empty(0)
 
-        return(A_gamma)
+        return(A_gamma, S_gamma)
 
 
 def collapse_dims(x, first2dimensions=False):
