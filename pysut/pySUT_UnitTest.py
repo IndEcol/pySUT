@@ -8,7 +8,6 @@ Created on Mon Aug 11 16:19:39 2014
 import numpy as np
 import numpy.testing as npt
 # import pylab
-import IPython
 import pySUT
 from pySUT import SUT
 import unittest
@@ -1023,6 +1022,57 @@ class TestAllocationsConstructs(unittest.TestCase):
 
         sut = SUT(U=self.Uu, V=self.V, F=self.F)
         A, S, nn_in, nn_out, Z, F_con = sut.itc(keep_size=False)
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(F_con0, F_con, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+
+    def test_esc_nonsquare(self):
+        """ Test European System Construct on non-square system """
+
+        Z0 = np.array([[ 0.  ,  0.  ,  0.  ],
+                       [ 0.  ,  0.  ,  0.75],
+                       [ 4.  ,  2.75,  0.  ]])
+
+        A0 = np.array([[ 0.        ,  0.        ,  0.        ],
+                       [ 0.        ,  0.        ,  0.06818182],
+                       [ 2.        ,  0.55      ,  0.        ]])
+
+        F_con0 = np.array([[ 10.,  19.,  18.],
+                           [  0.,   1.,   0.]])
+
+        S0 = np.array([[ 5.        ,  3.8       ,  1.63636364],
+                       [ 0.        ,  0.2       ,  0.        ]])
+
+        sut = SUT(U=self.Uu, V=self.V, F=self.F, E_bar = self.E_bar)
+        A, S, nn_in, nn_out, Z, F_con = sut.esc()
+
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(F_con0, F_con, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+
+    def test_esc_square(self):
+        """ Test European System Construct on square system, assume primary
+        production on diagonal."""
+
+        Z0 = np.array([[ 0.  ,  0.  ,  0.  ],
+                       [ 0.  ,  0.  ,  0.75],
+                       [ 4.  ,  2.75,  0.  ]])
+
+        A0 = np.array([[ 0.        ,  0.        ,  0.        ],
+                       [ 0.        ,  0.        ,  0.06818182],
+                       [ 2.        ,  0.55      ,  0.        ]])
+
+        F_con0 = np.array([[ 10.,  19.,  18.],
+                       [  0.,   1.,   0.]])
+
+        S0 = np.array([[ 5.        ,  3.8       ,  1.63636364],
+                       [ 0.        ,  0.2       ,  0.        ]])
+
+        sut = SUT(U=self.Ua, V=self.Va, F=self.Fa)
+        A, S, nn_in, nn_out, Z, F_con = sut.esc()
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)

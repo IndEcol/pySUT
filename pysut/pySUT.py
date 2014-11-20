@@ -956,6 +956,58 @@ class SUT(object):
         return (A, S, nn_in, nn_out, Z, F_con)
 
 
+    def esc(self, keep_size=True):
+        """ Performs European System Construct on SuUT inventory
+
+        Args
+        ----
+        keep_size: by default, keep all rows and columns in normalized A-matrix
+                   even if some rows/columns should be NaN
+
+        Depends on
+        ----------
+        self.U :     Use table [com, ind]
+        self.V :     Supply table [com, ind]
+        self.E_bar:  0 or 1 mapping of primary production [com,ind]
+                     (if absent and system square, assume identity matrix)
+        selfself..G :     Unallocated emissions [ext, ind] (default=np.empty(0))
+
+        Returns
+        --------
+        A:      Normalized technical requirements [com,com]
+        S:      Normalized, constructed emissions [ext, com]
+        nn_in:  filter to remove np.empty rows in A or Z [com]
+        nn_out: filter to remove np.empty columns in A or Z [com]
+        Z:      constructed intermediate flow matrix [com,com]
+        F_con:  Unnormalized, constructed emissions [ext,com]
+
+        """
+        # Default output
+        F_con = np.empty(0)
+        S = np.empty(0)
+
+        # When no explicit designation of primary production, assume it is on
+        # the diagonal if the supply table is square
+        if (self.E_bar is None) and (self.V.shape[0] == self.V.shape[1]):
+            E_bar = np.eye(self.V.shape[0])
+            logging.warning("ESC: assuming primary production is on diagonal")
+        else:
+            E_bar = self.E_bar
+
+        # Construct product flows
+        Z = self.U.dot(E_bar.T)  # <--eq:esc_notsquare
+
+        # Construct extension flows
+        if self.F is not None:
+            F_con = self.F.dot(E_bar.T)  #  <-- eq:ESCEnvExt
+
+        # Normalize and return
+        A, S, nn_in, nn_out = matrix_norm(Z, self.V, F_con, keep_size)
+
+        return A, S, nn_in, nn_out, Z, F_con
+
+
+
     def ctc(self):
         """Performs Commodity Technology Construct of SuUT inventory
 
