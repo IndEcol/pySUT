@@ -812,9 +812,6 @@ class TestAllocationsConstructs(unittest.TestCase):
     def test_psc_agg(self):
         """ Tests Product Substition Construct on SuUT"""
 
-        Z0 = np.array([[0.  ,  0.  ,  0.  ],
-                       [0.  ,  0.  ,  0.75],
-                       [3.7 ,  2.75,  0.  ]])
 
         A0 = np.array([[0.        ,  0.        ,  0.        ],
                        [0.        ,  0.        ,  0.06818182],
@@ -824,9 +821,8 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, Xi=self.Xi, F=self.F)
-        Z, A, __, __, __, S = sut.psc_agg(keep_fullsize=False)
+        A, S, __, __ = sut.psc_agg(keep_size=False)
 
-        npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
 
@@ -861,7 +857,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.2       ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, PSI=self.PSI, F=self.F)
-        Z, A, __, __, F_con, S = sut.pc_agg(keep_fullsize=False)
+        A, S, __, __, Z, F_con = sut.pc_agg(keep_size=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -885,11 +881,11 @@ class TestAllocationsConstructs(unittest.TestCase):
 
         sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, Gamma=self.Gamma,
                   F=self.F)
-        Z, A, __, __, __, S = sut.aac_agg(keep_fullsize=False)
+        A, S, __, __, Z, __ = sut.aac_agg(keep_size=False)
 
-        npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(Z0, Z, atol=self.atol)
 
 
     def test_aac_agg_3reg2ind3prod_nocoprod(self):
@@ -902,7 +898,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                   regions=3)
 
         sut.build_mr_Gamma()
-        Z, A, nn_in, nn_out, F, S = sut.aac_agg()
+        A, S, nn_in, nn_out, Z, F_con = sut.aac_agg()
         npt.assert_allclose(self.Z_3r2i3p, Z, atol=self.atol)
 
     def test_aac_agg_3reg2ind3prod_coprod(self):
@@ -915,7 +911,7 @@ class TestAllocationsConstructs(unittest.TestCase):
         sut.build_E_bar()
         sut.build_mr_Gamma()
 
-        Z, A, nn_in, nn_out, F, S = sut.aac_agg()
+        A, S, nn_in, nn_out, Z, F_con = sut.aac_agg()
 
         #  Ca_j has same tech as No_I
         #  US_k has the tech of US_J, which was deduced from (primary) US_i
@@ -936,13 +932,11 @@ class TestAllocationsConstructs(unittest.TestCase):
         """ The point of this one is to test SuUT where some products are
         simply not produced, neither as primary nor as secondary flows"""
 
-        sut = SUT(U=self.U_3r2i3p,
-                  V=self.V_3r2i3p_coprod,
-                  regions=3)
+        sut = SUT(U=self.U_3r2i3p, V=self.V_3r2i3p_coprod, regions=3)
         sut.build_E_bar()
         sut.build_mr_Xi()
 
-        Z, A, nn_in, nn_out, F, S = sut.psc_agg()
+        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_unnormalized_flows=True)
         # Ca_j production (secondary to Ca_i) displaces No_j
         # Us_k production (secondary to US_i) displaces US_k
         Z0 = np.array([[ 0. ,  0. ,  0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ],
@@ -967,7 +961,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                   regions=3)
 
         sut.build_mr_Xi()
-        Z, A, nn_in, nn_out, F, S = sut.psc_agg()
+        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_unnormalized_flows=True)
         npt.assert_allclose(self.Z_3r2i3p, Z, atol=self.atol)
 
 
@@ -975,27 +969,35 @@ class TestAllocationsConstructs(unittest.TestCase):
     def test_lsc(self):
         """ Tests Lump Sum Construct on SuUT"""
 
-        Z0 = np.array([[0.  ,  0.  ,  0.  ],
-                       [0.  ,  0.  ,  0.75],
-                       [4.  ,  2.75,  0.  ]])
-
         A0 = np.array([[0.        ,  0.        ,  0.        ],
                        [0.        ,  0.        ,  0.06818182],
                        [1.33333333,  0.6875    ,  0.        ]])
-
-        F_con0 = np.array([[10.,  19.,  18.],
-                           [0.,   1.,   0.]])
 
         S0 = np.array([[3.33333333,  4.75      ,  1.63636364],
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, F=self.F)
-        Z, A, __,__, F_con, S = sut.lsc(keep_fullsize=False)
+        A, S, __, __ = sut.lsc(keep_size=False)
+
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+
+    def test_lsc_with_absolue_flows(self):
+        """ Tests Lump Sum Construct on SuUT"""
+
+        Z0 = np.array([[0.  ,  0.  ,  0.  ],
+                       [0.  ,  0.  ,  0.75],
+                       [4.  ,  2.75,  0.  ]])
+
+        F_con0 = np.array([[10.,  19.,  18.],
+                           [0.,   1.,   0.]])
+
+        sut = SUT(U=self.Uu, V=self.V, E_bar=self.E_bar, F=self.F)
+        __, __ , __,__, Z, F_con = sut.lsc(keep_size=False,
+                                           return_unnormalized_flows=True)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
-        npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(F_con0, F_con, atol=self.atol)
-        npt.assert_allclose(S0, S, atol=self.atol)
 
     def test_itc(self):
         """ Tests Industry Technology Construct on SuUT"""
@@ -1019,7 +1021,7 @@ class TestAllocationsConstructs(unittest.TestCase):
 
 
         sut = SUT(U=self.Uu, V=self.V, F=self.F)
-        Z, A, F_con, S = sut.itc(keep_fullsize=False)
+        A, S, nn_in, nn_out, Z, F_con = sut.itc(keep_size=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -1044,12 +1046,12 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Uu, V=self.V, F=self.F, E_bar=self.E_bar)
-        Z, A, F_con, S = sut.btc(keep_fullsize=False)
+        A, S, nn_in, nn_out, Z, F_con = sut.btc(keep_size=False)
 
-        npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
-        npt.assert_allclose(F_con0, F_con, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(F_con0, F_con, atol=self.atol)
 
     def test_btc_square(self):
         """Tests Byproduct Technology Construct on square SuUT"""
@@ -1069,7 +1071,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Ua, V=self.Va, F=self.Fa)
-        Z, A, F_con, S = sut.btc(keep_fullsize=False)
+        A, S, nn_in, nn_out, Z, F_con = sut.btc(keep_size=False)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
@@ -1098,28 +1100,28 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [-0.125     ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Ua, V=self.Va, F=self.Fa)
-        Z, A, F_con, S = sut.ctc(keep_fullsize=False)
+        A, S, nn_in, nn_out, Z, F_con = sut.ctc(keep_size=False)
 
-        npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
-        npt.assert_allclose(F_con0, F_con, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(Z0, Z, atol=self.atol)
+        npt.assert_allclose(F_con0, F_con, atol=self.atol)
 
     def test_BTC_construct_compatibility(self):
         """Test the A and S matrices for the BTC construct."""
-        _, A, _, S = mySUT3.btc() 
+        A, S, __, __, __, __ = mySUT3.btc() 
         np.testing.assert_array_almost_equal(mySUT3.Build_BTC_A_matrix(),A_BTC,8) 
         np.testing.assert_array_almost_equal(mySUT3.Build_BTC_S(),S_BTC,9) 
         
     def test_CTC_construct_compatibility(self):
         """Test the A and S matrices for the CTC construct."""
-        _, A, _, S = mySUT3.ctc() 
-        np.testing.assert_array_almost_equal(A,A_CTC_cxc,8) 
-        np.testing.assert_array_almost_equal(S,S_CTC,9) 
+        A, S, __, __,  _, _ = mySUT3.ctc() 
+        np.testing.assert_array_almost_equal(A, A_CTC_cxc, 8) 
+        np.testing.assert_array_almost_equal(S, S_CTC, 9) 
         
     def test_ITC_construct_compatibility(self):
-        """Test the A and S matrices for the CTC construct."""
-        _, A, _, S = mySUT3.itc() 
+        """Test the A and S matrices for the ITC construct."""
+        A, S, __, __, __, __ = mySUT3.itc() 
         np.testing.assert_array_almost_equal(A,A_ITC_cxc,8) 
         np.testing.assert_array_almost_equal(S,S_ITC,9)         
 

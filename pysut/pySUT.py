@@ -24,6 +24,7 @@ from pySUT import SUT
 
 # import os
 import sys
+import IPython
 import logging
 # import string
 import numpy as np
@@ -748,7 +749,9 @@ class SUT(object):
         return self.S_ITC_cxc        
 
 
-    def pc_agg(self, keep_fullsize=True):
+    """ Aggregation Constructs"""        
+
+    def pc_agg(self, keep_size=True):
         """Performs Partition Aggregation Construct of SuUT inventory
 
         Parameters
@@ -761,17 +764,17 @@ class SUT(object):
 
         Returns
         --------
-        Z : constructed intermediate flow matrix [com,com]
         A : Normalized technical requirements [com,com]
+        S : Normalized, constructed emissions [ext, com]
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
+        Z : constructed intermediate flow matrix [com,com]
         F_con : Constructed emissions [ext,com]
-        S_con : Normalized, constructed emissions [ext, com]
 
         """
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
         # Partitioning properties and coefficients
         if self.PHI is None:
@@ -779,19 +782,17 @@ class SUT(object):
 
         # Partitioning of product flows
         Z = self.U.dot(self.PHI)  # <-- eq:PCagg
-        (A, nn_in, nn_out) = matrix_norm(Z, self.V, keep_fullsize)
 
         # Partitioning of environmental extensions
         if self.F is not None:
             F_con = self.F.dot(self.PHI)  # <-- eq:PCEnvExt
 
-            # Normalize environmental extension
-            (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
 
-        return (Z, A, nn_in, nn_out, F_con, S_con)
+        return (A, S, nn_in, nn_out, Z, F_con)
 
 
-    def psc_agg(self, keep_fullsize=True):
+    def psc_agg(self, keep_size=True, return_unnormalized_flows=False):
         """Performs Product Substitution aggregation Construct of SuUT inventory
 
         Parameters
@@ -800,39 +801,43 @@ class SUT(object):
         V : Supply table [com, ind]
         E_bar : 0 or 1 mapping of primary commodities to industries [com,ind]
         Xi : substitution table [com,com]
-        G : Unallocated emissions [ext, ind] (default=np.empty(0))
+        F : Unallocated emissions [ext, ind] (default=np.empty(0))
 
         Returns
         --------
-        Z : constructed intermediate flow matrix [com,com]
         A : Normalized technical requirements [com,com]
+        S : Normalized, constructed emissions [ext, com]
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
+        Z : constructed intermediate flow matrix [com,com]
         F_con : Constructed emissions [ext,com]
-        S : Normalized, constructed emissions [ext, com]
         """
 
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
         # Construction of Product Flows
         Z = (self.U - self.Xi.dot(self.V_tild())).dot(self.E_bar.T)  # <-- eq:PSCagg
         # Normalizing
-        (A, nn_in, nn_out) = matrix_norm(Z, self.V_bar(), keep_fullsize)
 
         # Allocation of Environmental Extensions
         if self.F is not None:
             F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
 
-            # Normalization
-            (S_con, _, _) = matrix_norm(F_con, self.V_bar(), keep_fullsize)
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar(), F_con, keep_size)
 
         # Return allocated values
-        return(Z, A, nn_in, nn_out, F_con, S_con)
+        if return_unnormalized_flows:
+            logging.warning("Unnormalized flows (Z, F_con) for this construct"
+                            " may differ from calculated flows for a given"
+                            " final demand")
+            return (A, S, nn_in, nn_out, Z, F_con)
+        else:
+            return (A, S, nn_in, nn_out)
 
 
-    def aac_agg(self, nmax=np.Inf, keep_fullsize=True):
+    def aac_agg(self, nmax=np.Inf, res_tol=0, keep_size=True):
         """ Alternative Activity aggregation Construct of SuUT inventory
 
         Parameters
@@ -853,39 +858,38 @@ class SUT(object):
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
         F_con : Constructed emissions [ext,com]
-        S_con : Normalized, constructed emissions [ext, com]
+        S : Normalized, constructed emissions [ext, com]
 
         """
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
         # Basic variables
         e_ind = np.ones(self.V.shape[1])
         V_tild = self.V_tild()
 
         # Calculate competing technology requirements
-        A_gamma, F_gamma = self.__alternate_tech(nmax)
+        A_gamma, F_gamma = self.__alternate_tech(nmax=nmax, res_tol=res_tol)
 
         # Allocation step
         Z = (self.U - A_gamma.dot(V_tild)).dot(self.E_bar.T) + \
                 A_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACagg
 
-        (A, nn_in, nn_out) = matrix_norm(Z, self.V, keep_fullsize)
 
         # Partitioning of environmental extensions
         if self.F is not None:
             F_con = (self.F - F_gamma.dot(V_tild)).dot(self.E_bar.T) + \
                     F_gamma.dot(ddiag(V_tild.dot(e_ind)))  # <-- eq:AACEnvExt
-            (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
 
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
     #   Output
-        return(Z, A, nn_in, nn_out, F_con, S_con)
+        return (A, S, nn_in, nn_out, Z, F_con)
 
     ##############################################################################
 
 
-    def lsc(self, keep_fullsize=True):
+    def lsc(self, keep_size=True, return_unnormalized_flows=False):
         """ Performs Lump-sum aggregation Construct of SuUT inventory
 
         Parameters
@@ -903,33 +907,38 @@ class SUT(object):
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
         F_con : Constructed emissions [ext,com]
-        S_con : Normalized, constructed emissions [ext, com]
+        S : Normalized, constructed emissions [ext, com]
 
         """
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
         # Allocation of Product Flows
         Z = self.U.dot(self.E_bar.T)  # <-- eq:LSCagg
         V_dd = self.E_bar.dot(ddiag(self.g_V()))  # <-- eq:LSCagg
-        # Normalizing
-        (A, nn_in, nn_out) = matrix_norm(Z, V_dd, keep_fullsize)
 
         # Allocation of Environmental Extensions
         if self.F is not None:
             F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
-            # Normalization
-            (S_con, _, _) = matrix_norm(F_con, V_dd, keep_fullsize)
+
+        # Normalizing
+        (A, S, nn_in, nn_out) = matrix_norm(Z, V_dd, F_con, keep_size)
 
         # Return allocated values
-        return(Z, A, nn_in, nn_out, F_con, S_con)
+        if return_unnormalized_flows:
+            logging.warning("Unnormalized flows (Z, F_con) for this construct"
+                            " may differ from calculated flows for a given"
+                            " final demand")
+            return (A, S, nn_in, nn_out, Z, F_con)
+        else:
+            return (A, S, nn_in, nn_out)
 
 
     ###############################################################################
     # SPECIAL CASES
 
-    def itc(self, keep_fullsize=True):
+    def itc(self, keep_size=True):
         """Performs Industry Technology Construct of SuUT inventory
 
         Parameters
@@ -943,24 +952,25 @@ class SUT(object):
         Z : constructed intermediate flow matrix [com,com]
         A : Normalized technical requirements [com,com]
         F_con : Constructed emissions [ext,com]
-        S_con : Normalized, constructed emissions [ext, com]
+        S : Normalized, constructed emissions [ext, com]
 
         """
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
-        Z = self.U.dot(diaginv(self.g_V())).dot(self.V.T)  # <-- eq:itc
-        (A, _, _) = matrix_norm(Z, self.V, keep_fullsize)
+        g_diag_inv = diaginv(self.g_V())
+        Z = self.U.dot(g_diag_inv).dot(self.V.T)  # <-- eq:itc
 
         if self.F is not None:
-            F_con = self.F.dot(diaginv(self.g_V())).dot(self.V.T)  # <-- eq:ITCEnvExt
-            (S_con, _, _) = matrix_norm(F_con, self.V, keep_fullsize)
+            F_con = self.F.dot(g_diag_inv).dot(self.V.T)  # <-- eq:ITCEnvExt
 
-        return(Z, A, F_con, S_con)
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
+
+        return (A, S, nn_in, nn_out, Z, F_con)
 
 
-    def ctc(self, keep_fullsize=True):
+    def ctc(self, keep_size=True):
         """Performs Commodity Technology Construct of SuUT inventory
 
         Parameters
@@ -974,23 +984,27 @@ class SUT(object):
         Z : constructed intermediate flow matrix [com,com]
         A : Normalized technical requirements [com,com]
         F_con : Constructed emissions [ext,com]
-        S_con : Normalized, constructed emissions [ext, com]
+        S : Normalized, constructed emissions [ext, com]
 
         """
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
-        A = self.U.dot(np.linalg.inv(self.V))  # <-- eq:ctc
+        inv_V = np.linalg.inv(self.V)
+        A = self.U.dot(inv_V)  # <-- eq:ctc
         Z = A.dot(ddiag(self.q_V()))
 
         if self.F is not None:
-            S_con = self.F.dot(np.linalg.inv(self.V))
-            F_con = S_con.dot(ddiag(self.q_V()))  # <--eq:CTCEnvExt
-        return(Z, A, F_con, S_con)
+            S = self.F.dot(inv_V)
+            F_con = S.dot(ddiag(self.q_V()))  # <--eq:CTCEnvExt
+
+        nn_in, nn_out = matrix_norm(Z, self.V, just_filters=True)
+
+        return (A, S, nn_in, nn_out, Z, F_con)
 
 
-    def btc(self, keep_fullsize=True):
+    def btc(self, keep_size=True):
         """Performs Byproduct Technology Construct of SuUT inventory
         Parameters
         ----------
@@ -1004,13 +1018,13 @@ class SUT(object):
         Z : constructed intermediate flow matrix [com,com]
         A : Normalized technical requirements [com,com]
         F_con : Constructed emissions [ext,com]
-        S_con : Normalized, constructed emissions [ext, com]
+        S : Normalized, constructed emissions [ext, com]
 
         """
 
         # Default values
         F_con = np.empty(0)
-        S_con = np.empty(0)
+        S = np.empty(0)
 
         if self.E_bar is None and (self.V.shape[0] == self.F.shape[1]):
             E_bar = np.eye(self.V.shape[0])
@@ -1019,12 +1033,13 @@ class SUT(object):
 
         # The construct
         Z = (self.U - self.V_tild()).dot(E_bar.T)  # <-- eq:btc
-        (A, _, _) = matrix_norm(Z, self.V_bar(), keep_fullsize)
 
         if self.F is not None:
             F_con = self.F.dot(E_bar.T)  # <-- eq:NonProdBalEnvExt
-            (S_con, _, _) = matrix_norm(F_con, self.V_bar(), keep_fullsize)
-        return(Z, A, F_con, S_con)
+
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar(), F_con, keep_size)
+
+        return (A, S, nn_in, nn_out, Z, F_con)
 
     """ HELPER FUNCTIONS"""
     def __pa_coeff(self):
@@ -1111,7 +1126,7 @@ class SUT(object):
         res = np.sum(tier_n)
 
         # Iterations 1 to nmax
-        while ((res >= res_tol) or (res < 0)) and (n <= nmax):
+        while ((res > res_tol) or (res < 0)) and (n <= nmax):
             tier_n = tier_n.dot(tier)
             theSum += tier_n.dot(Gamma)
             n += 1
@@ -1183,22 +1198,38 @@ def collapse_dims(x, first2dimensions=False):
     return z
 
 
-def matrix_norm(Z, V, keep_fullsize=False):
-    """ Normalizes a flow matrix, even if some rows and columns are null
+
+def matrix_norm(Z, V, F_con=np.empty(0), keep_size=False, just_filters=False):
+    """ Normalizes a flow matrices, even if some rows and columns are null
+
+    Processes product flows (Z) and environmental extensions (F_con).
+    Normalizes columns for which a product is indeed supplied, and remove rows
+    and columns of products that are not produced (nan-columns).
+
+    For readability, also remove rows of products that are not used
+
+    If keep_size: don't remove an rows or columns, fill with zeros if nan.
 
     Parameters
     ----------
     Z : Flow matrix to be normalized
-        dimensions : [com, com] | [com, ind,com] | [ind,com,ind,com]
+        dimensions : [com, com] | [com, ind, com] | [ind,com,ind,com]
     V : Production volume with which flows are normalized
         [com, ind]
 
-    keep_fullsize: Do not remove empty rows and columns from A, leave with
+    F_con: Allocated or construced but unnormalized environmental extensions
+           [str, com] | [str, ind, com]
+
+    keep_size: Do not remove empty rows and columns from A, leave with
                    zeros. [Default, false, don't do it]
 
-    Returns
+    just_filters: Don't normalize anything, just return nn_in and nn_out
+
+
+    Returns (when just_filters==False, otherwise just last two)
     --------
-    A : Normalized flow matrix, without null rows and columns
+    A : Normalized flow matrix, without null/nan rows and nan columns
+    S : Normalized extensions, by default without nan columns
     nn_in : filter applied to rows (0 for removed rows, 1 for kept rows)
     nn_out : filter applied to cols (0 for removed cols, 1 for kept cols)
 
@@ -1206,46 +1237,88 @@ def matrix_norm(Z, V, keep_fullsize=False):
     # Collapse dimensions
     if Z.ndim > 2:
         Z = collapse_dims(Z)
+    if F_con.ndim > 2:
+        F_con = collapse_dims(F_con)
+
     # Basic Variables
     com = np.size(V, 0)
     ind = np.size(V, 1)
     com2 = np.size(Z, 0)
 
-    # Total production, both aggregate and traceable
+    # Total production (q, q_tr) and intermediate consumptin (u) vectors
     q = np.sum(V, 1)
     u = np.sum(Z, 1)
-    q_tr = np.zeros(ind * com)
-    for i in range(ind):
-        q_tr[i * com:(i + 1) * com] = V[:, i]
+    if np.max(Z.shape) == com * ind:
+        q_tr = np.zeros(ind * com)
+        for i in range(ind):
+            q_tr[i * com:(i + 1) * com] = V[:, i]
 
-    # Filter inputs. Preserve only commodities that are used (to get the recipe
-    # right) or that are produced (to get the whole matrix square)
     if np.size(Z, 0) == com:
+        traceable = False
         nn_in = (abs(q) + abs(u)) != 0
     elif np.size(Z, 0) == com * ind:
+        traceable = True
         nn_in = (abs(q_tr) + abs(u)) != 0
     else:
-        nn_in = np.ones(com2, dtype=bool)
+        raise Exception("Mismatched rows between Z and V")
 
     if np.size(Z, 1) == com:
         nn_out = q != 0
-        A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(ddiag(q[nn_out])))
-    elif np.size(Z, 1) == (com * ind):
+        q_inv = np.linalg.inv(ddiag(q[nn_out]))
+    elif np.size(Z, 1) == com * ind:
         nn_out = q_tr != 0
-        A = Z[nn_in, :][:, nn_out].dot(np.linalg.inv(ddiag(q_tr[nn_out])))
+        q_inv = np.linalg.inv(ddiag(q_tr[nn_out]))
     else:
-        nn_out = np.ones(np.size(Z, 1), dtype=bool)
-        A = Z.dot(np.linalg.inv(ddiag(q_tr)))
+        raise Exception("Mismatched columns between Z and V")
 
-    if keep_fullsize:
-        A0 = np.zeros([Z.shape[0], A.shape[1]])
-        A1 = np.zeros_like(Z)
-        A0[nn_in, :] = A
-        A1[:, nn_out] = A0
-        A = A1
+
+    # Filter inputs. Preserve only commodities that are used (to get the recipe
+    # right) or that are produced (to get the whole matrix square)
+    if just_filters:
+        return (nn_in, nn_out)
+
+    # remove empty entried, diagonalize, inverse...
+    if np.size(Z, 1) == com:
+        q_inv = np.linalg.inv(ddiag(q[nn_out]))
+    else:
+        q_inv = np.linalg.inv(ddiag(q_tr[nn_out]))
+
+    # and use to normalize product and stressor flows.
+    A = Z[nn_in, :][:, nn_out].dot(q_inv)
+    if F_con.size:
+        S = F_con[:, nn_out].dot(q_inv)
+    else:
+        S = np.empty(0)
+
+    # Restore size if need be
+    if keep_size:
+        A = restore_size(A, nn_in, nn_out)
+        S = restore_size(S, nn_out=nn_out)
 
     # Return
-    return (A, nn_in, nn_out)
+    return (A, S, nn_in, nn_out)
+
+def restore_size(X, nn_in=None, nn_out=None):
+
+    # Make sure we have somthing significant
+    if not X.size:
+        return X
+
+    # Restore  rows
+    if nn_in is not None:
+        X0 = np.zeros((len(nn_in), X.shape[1]))
+        X0[nn_in, :] = X
+    else:
+        X0 = X
+
+    # Restore cols
+    if nn_out is not None:
+        X1 = np.zeros((X0.shape[0], len(nn_out)))
+        X1[:, nn_out] = X0
+    else:
+        X1 = X0
+
+    return X1
 
 
 def diaginv(x):
