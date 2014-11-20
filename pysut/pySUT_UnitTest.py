@@ -9,6 +9,7 @@ import numpy as np
 import numpy.testing as npt
 # import pylab
 import IPython
+import pySUT
 from pySUT import SUT
 import unittest
 
@@ -274,7 +275,7 @@ class KnownResults(unittest.TestCase):
         av = np.array([1,2,2])
         sut = SUT()
 
-        Uout = sut._aggregate_regions_vectorised(U, av, axis=0)
+        Uout = pySUT.aggregate_regions_vectorised(U, av, axis=0)
         U0 = np.array([[ 0,  1,  2,  3,  4,  5],
                        [ 6,  7,  8,  9, 10, 11],
                        [12, 13, 14, 15, 16, 17],
@@ -283,7 +284,7 @@ class KnownResults(unittest.TestCase):
                        [78, 80, 82, 84, 86, 88]])
         npt.assert_array_equal(U0, Uout)
 
-        Uout = sut._aggregate_regions_vectorised(U, av, axis=1)
+        Uout = pySUT.aggregate_regions_vectorised(U, av, axis=1)
         U0 = np.array([[  0,   1,   6,   8],
                        [  6,   7,  18,  20],
                        [ 12,  13,  30,  32],
@@ -302,7 +303,7 @@ class KnownResults(unittest.TestCase):
         sut = SUT()
 
         # Test aggregation of both axes
-        Uout = sut._aggregate_regions_vectorised(U, av)
+        Uout = pySUT.aggregate_regions_vectorised(U, av)
         U0 = np.array([[  0,   1,   6,   8],
                        [  6,   7,  18,  20],
                        [ 12,  13,  30,  32],
@@ -315,14 +316,14 @@ class KnownResults(unittest.TestCase):
 
         sut = SUT(U=np.arange(54).reshape((3*3, 3*2)), regions=3)
 
-        Uout = sut.aggregate_within_regions(sut.U, axis=0)
+        Uout = pySUT.aggregate_within_regions(sut.U, sut.regions, axis=0)
         U0 = np.array([[  18.,   21.,   24.,   27.,   30.,   33.],
                        [  72.,   75.,   78.,   81.,   84.,   87.],
                        [ 126.,  129.,  132.,  135.,  138.,  141.]])
         npt.assert_array_equal(U0, Uout)
 
 
-        Uout = sut.aggregate_within_regions(sut.U, axis=1)
+        Uout = pySUT.aggregate_within_regions(sut.U, sut.regions, axis=1)
         U1 = np.array([[   1.,    5.,    9.],
                        [  13.,   17.,   21.],
                        [  25.,   29.,   33.],
@@ -335,7 +336,7 @@ class KnownResults(unittest.TestCase):
         npt.assert_array_equal(U1, Uout)
 
 
-        Uout = sut.aggregate_within_regions(sut.U)
+        Uout = pySUT.aggregate_within_regions(sut.U, sut.regions)
         U2 = np.array([[  39.,   51.,   63.],
                        [ 147.,  159.,  171.],
                        [ 255.,  267.,  279.]])
@@ -1100,7 +1101,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [-0.125     ,  0.25      ,  0.        ]])
 
         sut = SUT(U=self.Ua, V=self.Va, F=self.Fa)
-        A, S, nn_in, nn_out, Z, F_con = sut.ctc(keep_size=False)
+        A, S, nn_in, nn_out, Z, F_con = sut.ctc()
 
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
