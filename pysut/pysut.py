@@ -42,6 +42,9 @@ class SupplyUseTable(object):
     F : Extensions: type by industry
     FY: Extensions: type by end-use category
     TL: Trade link (for MRIO models)
+    l_pro: Labels of products
+    l_ind: Labels of industries
+    l_ext: Labels of extensions
 
 
     unit : Unit for each row of V,U, and y (product unit)
@@ -97,6 +100,9 @@ class SupplyUseTable(object):
         self.F = F # optional
         self.FY= FY# optional
         self.TL= TL# optional
+        self.l_pro = None
+        self.l_ind = None
+        self.l_ext = None
        
         self.name = name  # optional
         self.regions = regions # Number of regions, for multiregional SUT
@@ -204,6 +210,88 @@ class SupplyUseTable(object):
             SupplyDiag_Eval[m, 6] = SupplySum_i[m]
 
         return SupplyDiag_Eval
+
+    def _check_secondary_prod(self, full_debug=False):
+        """ Diagnostic of primary and secondary productions
+
+        This simple method gives an overview of the number of exclusive
+        secondary productions, off-diagonal primary productions, and primary
+        productions that are of smaller magnitude than their associated
+        secondary productions.
+
+        Args:
+        -----
+        * full_debug: Output a table to further examine a summary of "strange"
+          primary-secondary coproduction patterns
+
+        Returns:
+        -------
+        * strange: None, or an array of secondary productions that surpass
+          their associated primary production in magnitude.
+
+        """
+
+        # Default
+        strange = None
+        # check how many off diagonal primary poducts we have
+        if self.E_bar.shape[0] == self.E_bar.shape[1]:
+            offdiag = self.E_bar - ddiag(self.E_bar)
+
+            offdiag_tot = np.sum(offdiag)
+            if  offdiag_tot > 0:
+                msg = "Found {} off-diagonal primary productions"
+                logging.warning(msg.format(offdiag_tot))
+
+        # Check how many exclusive secondary products
+        exclus = (self.E_bar.sum(1) == 0) & (self.q_V() != 0)
+        exclus_tot = np.sum(exclus)
+        if exclus_tot > 0:
+            msg = "Found {} exclusive secondary products."
+            logging.warning(msg.format(exclus_tot))
+
+        # Check how many secondary products are produced in greater amount than
+        # their associated primary product
+        V_bar = self.V_bar()
+        big_sec = np.max(V_bar, 0) < np.max(self.V_tild(), 0)
+        big_sec_tot = np.sum(big_sec)
+        if big_sec_tot > 0:
+            msg = ("Found {} secondary products that are produced in greater"
+                   "amount than their primary product")
+            logging.warning(msg.format(big_sec_tot))
+
+            if full_debug:
+                bo_bar = np.argmax(V_bar[:, big_sec], axis=0)
+                bo_all = np.argmax(self.V[:, big_sec], axis=0)
+                header = np.array(["Country",
+                                   "Industry",
+                                   "main product",
+                                   "amount",
+                                   "max product",
+                                   "amount"])
+                strange = np.row_stack([header,
+                                np.column_stack([self.l_ind[big_sec, 0:2],
+                                                   self.l_pro[bo_bar,1],
+                                                   V_bar[bo_bar, big_sec],
+                                                   self.l_pro[bo_all,1],
+                                                   self.V[bo_all, big_sec]])])
+
+        return strange
+
+
+            # q_bar_glo = aggregate_regions_vectorised(
+            #                         self.V_bar(), regions=self.regions).sum(1)
+            # q_glo = aggregate_regions_vectorised(
+            #                         self.V, regions=self.regions).sum(1)
+            # exclus_glo = (q_bar_glo == 0) & (q_glo != 0)
+            # exclus_glo_tot = np.sum(exclus_glo)
+            # if exclus_glo_tot > 0:
+            #     msg = "Found {} globally exclusive secondary products."
+            # else:
+            #     msg = "But there are {} gobally exclusive secondary products."
+            # logging.info(msg.format(exclus_glo_tot))
+
+
+
 
     """
     Basic computations, row sum, col sum, etc.
@@ -385,7 +473,7 @@ class SupplyUseTable(object):
     Modify tables
     """
 
-    def build_E_bar(self, prefer_exclusive=True):
+    def build_E_bar(self, prefer_exclusive=True, prefer_diag=True):
         """ Determine E_bar based on V, indentifying each primary supply flow
 
         Makes a best guess at the primary production flow of each industry. If
@@ -411,12 +499,12 @@ class SupplyUseTable(object):
 
         # If square, assume that diagonal is mainproduct whenever not null
         # Otherwise, don't assume anything
-        if self.V.shape[0] == self.V.shape[1]:
+        if self.V.shape[0] == self.V.shape[1] and prefer_diag:
             done = np.array(np.diag(self.V), dtype=bool)
             E_bar = np.array(np.diag(done), dtype=int)
         else:
             E_bar = np.zeros_like(self.V, dtype=int)
-            done = np.sum(E_bar,0) != 0
+            done = np.sum(E_bar, 0) != 0
 
         if prefer_exclusive:
             # For all other industries, if sole producer of product, make that
@@ -433,14 +521,15 @@ class SupplyUseTable(object):
             V_exclusive_max[max_in_column, cols] = V_exclusive[max_in_column, cols]
 
             E_bar[np.array(V_exclusive_max, dtype=bool)] = 1
-            done = np.sum(E_bar,0) != 0
+            done = np.sum(E_bar, 0) != 0
 
 
         # For each column without a main product, chose the largest supply flow
         max_in_column = np.argmax(np.abs(self.V), axis=0)
         V_max[max_in_column, cols] = self.V[max_in_column, cols]
-        E_bar[:, ~ done] = np.array(np.array(V_max[:, ~done], dtype=bool),dtype=int)
+        E_bar[:, ~ done] = np.array(np.array(V_max[:, ~done], dtype=bool), dtype=int)
         self.E_bar = E_bar
+        self._check_secondary_prod()
 
     def V_bar(self):
         if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
@@ -1504,6 +1593,26 @@ def diaginv(x):
     y = np.ones(len(x)) / x
     y[y == np.Inf] = 0
     return ddiag(y)
+
+def one_over(x):
+    """Simple function to invert each element of vector. if 0, stays 0, not Inf
+
+    * Element-wise divide a vector of ones by x
+    * Replace any instance of Infinity by 0
+
+    Parameters
+    ----------
+    x : vector to be diagonalized
+
+    Returns
+    --------
+    y : inversed vector
+       Values = 1/coefficient, or 0 if coefficient == 0
+
+    """
+    y = 1 / x
+    y[y == np.Inf] = 0
+    return y
 
 def ddiag(a, nozero=False):
     """ Robust diagonalization : always put selected diagonal on a diagonal!
