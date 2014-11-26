@@ -25,8 +25,6 @@ import sys
 import logging
 import numpy as np
 from scipy import sparse as sp
-import IPython
-import datetime
 
 # check for correct version number
 if sys.version_info.major < 3:
@@ -651,27 +649,42 @@ class SupplyUseTable(object):
         # Put all together and return to self
         self.Xi = Xi + Xi_glob
 
-    def build_mr_Gamma(self):
+    def build_mr_Gamma(self, exclude_minority_prod=True):
         """ Autogenerate alternate activity matrix for multi-regional SUT
 
         """
 
         V_bar = self.V_bar()
-        e_excl = np.array(self.E_bar.sum(1) == 0, int)
+        V_prim = V_bar.copy()
+
+        if exclude_minority_prod:
+            # Remove primary productions that are minority productions
+            not_prim = V_bar.max(0) < self.V.max(0)
+            V_prim[:, not_prim] = 0.0  # <-- local V_bar
+
 
         # Share of global primary production by held industries*countries
         # [rows] of product groups [columns]
-        X = aggregate_regions_vectorised(V_bar.T, axis=1, regions=self.regions)
+        X = aggregate_regions_vectorised(V_prim.T, axis=1, regions=self.regions)
         D = X * one_over(X.sum(axis=0))
 
+        # Check that there is globally at least one eligible primary producer
+        # for each product.
+        excl_glo = D.sum(0) == 0
+        if np.any(excl_glo):
+            msg = ("There are {} products without an eligible primary producer"
+                   " from which to assume a technology.")
+            logging.warning(msg.format(np.sum(excl_glo)))
+
         # Use this mix for all exclusive secondary productions
+        e_excl = np.array(V_prim.sum(1) == 0, int)
         Gamma_excl = np.kron(np.ones(self.regions), D) * e_excl
 
         # Otherwise, use local primary production mix (could be more than one
         # if multiple primary producers
-        Gamma_bar = V_bar.T * one_over(V_bar.sum(1))
+        Gamma_prim = V_prim.T * one_over(V_prim.sum(1))
 
-        self.Gamma = Gamma_excl + Gamma_bar
+        self.Gamma = Gamma_excl + Gamma_prim
 
 
 
@@ -1297,7 +1310,6 @@ class SupplyUseTable(object):
 
         invg = one_over(self.g_V())
 
-        t0 = datetime.datetime.now()
         #================ Sparse Matrix Section ==========================
         M = sp.csc_matrix(V_tild * one_over(V_bar.sum(0)))
         Gamma = sp.csc_matrix(Gamma)
@@ -1317,7 +1329,7 @@ class SupplyUseTable(object):
             theSum = theSum + term
             n += 1
             res = term.sum()
-            print("residual:{}".format(res))
+            print("residual: {:.2e}".format(res))
         #theSum = theSum.toarray()
         print("number of iterations:{}".format(n))
         #================ Sparse Matrix Section ==========================
@@ -1337,7 +1349,7 @@ class SupplyUseTable(object):
                     Bo_so = (X[I, :, :] * invg) * so
                     No_mo = (X[I, :, :] * one_over(V_bar.sum(0))) * mo
                     #------------start sparse matrix----------
-                    requirements = sp.csc_matrix(B_so + N_mo)
+                    requirements = sp.csc_matrix(Bo_so + No_mo)
                     X_gamma[I, :, :] = (requirements * theSum).toarray()
                     #------------start sparse matrix----------
             return X_gamma
@@ -1387,7 +1399,8 @@ def aggregate_regions_vectorised(X, AV=None, axis=None, regions=None):
     pos = np.zeros((len(AV), max(AV)), dtype=int)
     pos[np.arange(len(AV)), AV - 1] = 1
 
-    if ((X==0).sum() / X.size) > 0.50:
+    # If somewhat sparse, treat as sparse matrix, otherwise stick with numpy
+    if ((X == 0).sum() / X.size) > 0.50:
         sparse = True
         X = sp.csc_matrix(X)
     else:
