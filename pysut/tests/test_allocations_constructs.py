@@ -289,6 +289,8 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_array_equal(E_bar0, sut.E_bar)
 
 
+
+
     def test_build_E_bar_notsquare(self):
 
         V = np.array([[1.4, 0, 0,  12,  0],
@@ -312,6 +314,10 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_array_equal(E_bar0, sut.E_bar)
 
     def test_build_E_bar_multipleExclusive(self):
+        """ The point of this test is that the function should select V[5,4]=.2
+         as the primary product instead of V[0,4]=0.2 by default, but the other
+         way round when prefer_exclusive=false
+        """
 
         V = np.array([[1.4, 0, 0,  12,  0],
                       [5.,  3, 6., 0,   0],
@@ -320,6 +326,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                       [0,   0, 0,  0.2, 0]])
         sut = SupplyUseTable(V=V)
 
+        # First test: default
         sut.build_E_bar()
         E_bar0 = np.array([[1, 0, 0, 0, 0],
                            [0, 1, 1, 0, 0],
@@ -328,6 +335,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                            [0, 0, 0, 1, 0]])
         npt.assert_array_equal(E_bar0, sut.E_bar)
 
+        # Second test: prefer exclusive
         sut.build_E_bar(prefer_exclusive=False)
         E_bar0 = np.array([[1, 0, 0, 1, 0],
                            [0, 1, 1, 0, 0],
@@ -335,6 +343,39 @@ class TestAllocationsConstructs(unittest.TestCase):
                            [0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0]])
         npt.assert_array_equal(E_bar0, sut.E_bar)
+
+
+    def test_build_E_bar_dontpreferdiag(self):
+        """ The point of this test is that the function should select V[5,4]=.2
+         as the primary product instead of V[0,4]=0.2 by default, but the other
+         way round when prefer_exclusive=false
+        """
+
+        V = np.array([[1.4, 0, 0,  12,  0],
+                      [5.,  3, 6., 0,   0],
+                      [0,   0, 0,  0.1, 0],
+                      [0,   0, 0,  0,   0],
+                      [0,   0, 0,  0.2, 0]])
+        sut = SupplyUseTable(V=V)
+
+        # First test: always pick the biggest
+        sut.build_E_bar(prefer_diag=False, prefer_exclusive=False)
+        E_bar0 = np.array([[0, 0, 0, 1, 0],
+                           [1, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
+        # Second test: pick the largest, but prefer exclusive products
+        sut.build_E_bar(prefer_diag=False)
+        E_bar0 = np.array([[0, 0, 0, 0, 0],
+                           [1, 1, 1, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0],
+                           [0, 0, 0, 1, 0]])
+        npt.assert_array_equal(E_bar0, sut.E_bar)
+
 
     def test_build_E_bar_negatives(self):
 

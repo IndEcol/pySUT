@@ -240,14 +240,14 @@ class SupplyUseTable(object):
             offdiag_tot = np.sum(offdiag)
             if  offdiag_tot > 0:
                 msg = "Found {} off-diagonal primary productions"
-                logging.warning(msg.format(offdiag_tot))
+                logging.info(msg.format(offdiag_tot))
 
         # Check how many exclusive secondary products
         exclus = (self.E_bar.sum(1) == 0) & (self.q_V() != 0)
         exclus_tot = np.sum(exclus)
         if exclus_tot > 0:
             msg = "Found {} exclusive secondary products."
-            logging.warning(msg.format(exclus_tot))
+            logging.info(msg.format(exclus_tot))
 
         # Check how many secondary products are produced in greater amount than
         # their associated primary product
@@ -257,7 +257,7 @@ class SupplyUseTable(object):
         if big_sec_tot > 0:
             msg = ("Found {} secondary products that are produced in greater"
                    "amount than their primary product")
-            logging.warning(msg.format(big_sec_tot))
+            logging.info(msg.format(big_sec_tot))
 
             if full_debug:
                 bo_bar = np.argmax(V_bar[:, big_sec], axis=0)
@@ -483,9 +483,22 @@ class SupplyUseTable(object):
         by any other industry.  For all the rest, pick the biggest supply flows
         of each industry.
 
-        prefer_exclusive: Default True. If false, always pick the largest
-            supply flow as the primary product, even if this means creating
-            more exclusive byproducts.
+        Args
+        ----
+
+        prefer_diag: If the supply table is square, any value on the diagonal
+                     is taken to be primary production. Otherwise, pick the
+                     largest supply flow.
+
+        prefer_exclusive: Default True. When determining between off-diagonal
+                          entries, give preference to a product that is not
+                          produced by any other industry over a larger supply
+                          flow.
+
+        In other words, prefer_diag has precedence over prefer_exclusive, which
+        has precedence over the general rule of the primary production being
+        the largest production.
+
         """
 
 
