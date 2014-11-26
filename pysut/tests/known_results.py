@@ -6,7 +6,9 @@ Created on Mon Aug 11 16:19:39 2014
 """
 
 from .. import SupplyUseTable
+from .. import pysut
 import numpy as np
+import numpy.testing as npt
 import unittest
 
 ###############################################################################
@@ -268,3 +270,115 @@ class KnownResultsTestCase(unittest.TestCase):
         np.testing.assert_array_equal(mySUT5.V, V_res)
         np.testing.assert_array_equal(mySUT5.Y, Y_res)
         np.testing.assert_array_equal(mySUT5.F, F_res)
+    def test_aggregate_regions_vectorised_rowsAndColumns(self):
+        U = np.arange(54).reshape((9,6))
+        av = np.array([1,2,2])
+        sut = SupplyUseTable()
+
+        Uout = pysut.aggregate_regions_vectorised(U, av, axis=0)
+        U0 = np.array([[ 0,  1,  2,  3,  4,  5],
+                       [ 6,  7,  8,  9, 10, 11],
+                       [12, 13, 14, 15, 16, 17],
+                       [54, 56, 58, 60, 62, 64],
+                       [66, 68, 70, 72, 74, 76],
+                       [78, 80, 82, 84, 86, 88]])
+        npt.assert_array_equal(U0, Uout)
+
+        Uout = pysut.aggregate_regions_vectorised(U, av, axis=1)
+        U0 = np.array([[  0,   1,   6,   8],
+                       [  6,   7,  18,  20],
+                       [ 12,  13,  30,  32],
+                       [ 18,  19,  42,  44],
+                       [ 24,  25,  54,  56],
+                       [ 30,  31,  66,  68],
+                       [ 36,  37,  78,  80],
+                       [ 42,  43,  90,  92],
+                       [ 48,  49, 102, 104]])
+        npt.assert_array_equal(U0, Uout)
+
+
+    def test_aggregate_regions_vectorised_bothAxes(self):
+        U = np.arange(54).reshape((9,6))
+        av = np.array([1,2,2])
+        sut = SupplyUseTable()
+
+        # Test aggregation of both axes
+        Uout = pysut.aggregate_regions_vectorised(U, av)
+        U0 = np.array([[  0,   1,   6,   8],
+                       [  6,   7,  18,  20],
+                       [ 12,  13,  30,  32],
+                       [ 54,  56, 120, 124],
+                       [ 66,  68, 144, 148],
+                       [ 78,  80, 168, 172]])
+        npt.assert_array_equal(U0, Uout)
+
+    def test_aggregation_within_regions(self):
+
+        sut = SupplyUseTable(U=np.arange(54).reshape((3*3, 3*2)), regions=3)
+
+        Uout = pysut.aggregate_within_regions(sut.U, sut.regions, axis=0)
+        U0 = np.array([[  18.,   21.,   24.,   27.,   30.,   33.],
+                       [  72.,   75.,   78.,   81.,   84.,   87.],
+                       [ 126.,  129.,  132.,  135.,  138.,  141.]])
+        npt.assert_array_equal(U0, Uout)
+
+
+        Uout = pysut.aggregate_within_regions(sut.U, sut.regions, axis=1)
+        U1 = np.array([[   1.,    5.,    9.],
+                       [  13.,   17.,   21.],
+                       [  25.,   29.,   33.],
+                       [  37.,   41.,   45.],
+                       [  49.,   53.,   57.],
+                       [  61.,   65.,   69.],
+                       [  73.,   77.,   81.],
+                       [  85.,   89.,   93.],
+                       [  97.,  101.,  105.]])
+        npt.assert_array_equal(U1, Uout)
+
+
+        Uout = pysut.aggregate_within_regions(sut.U, sut.regions)
+        U2 = np.array([[  39.,   51.,   63.],
+                       [ 147.,  159.,  171.],
+                       [ 255.,  267.,  279.]])
+        npt.assert_array_equal(U2, Uout)
+
+    def test_primary_market_shares_of_regions(self):
+
+        V = np.array([[10.,  0.,  0.,  0.1  ],
+                      [0.,   20., 0.,  0.   ],
+                      [0.,   0.,  5.,  10.  ],
+                      [0.1,  0.,  0.,  0.   ]])
+
+        E_bar = np.array([[1, 0, 0, 0],
+                          [0, 1, 0, 0],
+                          [0, 0, 1, 1],
+                          [0, 0, 0, 0]])
+
+        sut = SupplyUseTable(V=V, E_bar=E_bar, regions=2)
+
+        D = sut.primary_market_shares_of_regions()
+
+        D0 = np.array([[ 0.4,  1. ],
+                       [ 0.6,  0. ]])
+
+        npt.assert_array_equal(D0,D)
+
+    def test_BTC_construct_compatibility(self):
+        """Test the A and S matrices for the BTC construct."""
+        A, S, __, __, __, __ = mySUT3.btc()
+        np.testing.assert_array_almost_equal(mySUT3.Build_BTC_A_matrix(),A_BTC,8)
+        np.testing.assert_array_almost_equal(mySUT3.Build_BTC_S(),S_BTC,9)
+
+    def test_CTC_construct_compatibility(self):
+        """Test the A and S matrices for the CTC construct."""
+        A, S, __, __,  _, _ = mySUT3.ctc()
+        np.testing.assert_array_almost_equal(A, A_CTC_cxc, 8)
+        np.testing.assert_array_almost_equal(S, S_CTC, 9)
+
+    def test_ITC_construct_compatibility(self):
+        """Test the A and S matrices for the ITC construct."""
+        A, S, __, __, __, __ = mySUT3.itc()
+        np.testing.assert_array_almost_equal(A,A_ITC_cxc,8)
+        np.testing.assert_array_almost_equal(S,S_ITC,9)
+
+

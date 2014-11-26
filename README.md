@@ -13,14 +13,16 @@ standard abbreviation: SUT
 
 dependencies:
     numpy
-    scipy
 
-How to load this class:
-- add class folder to system path
-sys.path.append(Package_Path)
+#### How to load this class:
+add class folder to system path
 
-import pySUT
-imp.reload(pySUT)
-from pySUT import SUT
+	sys.path.append(Package_Path)
+
+import class
+
+	import pysut
+	imp.reload(pysut)
+	from pysut import SupplyUseTable
 
 http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb
