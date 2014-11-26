@@ -24,6 +24,9 @@ from pysut import SupplyUseTable
 import sys
 import logging
 import numpy as np
+from scipy import sparse as sp
+import IPython
+import datetime
 
 # check for correct version number
 if sys.version_info.major < 3:
@@ -1293,41 +1296,50 @@ class SupplyUseTable(object):
         mo = np.array(np.sum(self.V != 0, 0) != 1, dtype=int)
 
         invg = one_over(self.g_V())
-        M = V_tild * one_over(V_bar.sum(0))
+
+        t0 = datetime.datetime.now()
+        #================ Sparse Matrix Section ==========================
+        M = sp.csc_matrix(V_tild * one_over(V_bar.sum(0)))
+        Gamma = sp.csc_matrix(Gamma)
 
         # Iteration 0: Prepare summation term used in definition of A_gamma
         n = 0
-        tier = -1 * Gamma.dot(M)
-        tier_n = np.linalg.matrix_power(tier, n)   # <= the identity matrix
-        theSum = tier_n.dot(Gamma)
+        tier = -1 * Gamma * M
+        tier_n = sp.identity(tier.shape[0])  #=tier**n
+        theSum = Gamma.copy()                #=identity*Gamma = tier_n * Gamma
         n = n + 1
-        res = np.sum(tier_n)
+        res = theSum.sum()
 
         # Iterations 1 to nmax
         while ((res > res_tol) or (res < 0)) and (n <= nmax):
-            tier_n = tier_n.dot(tier)
-            theSum += tier_n.dot(Gamma)
+            tier_n = tier_n * tier
+            term = tier_n * Gamma
+            theSum = theSum + term
             n += 1
-            res = np.sum(tier_n)
+            res = term.sum()
             print("residual:{}".format(res))
+        #theSum = theSum.toarray()
         print("number of iterations:{}".format(n))
+        #================ Sparse Matrix Section ==========================
 
         def apply_to_requirements(X):
             """ Apply to X, representing either U or F """
             if not traceable:
-                B = X * invg
-                B_so = B * so
-                N = X * one_over(V_bar.sum(0))
-                N_so = N * mo
-                X_gamma = (B_so + N_so).dot(theSum)
+                B_so = (X * invg) * so
+                N_mo = (X * one_over(V_bar.sum(0))) * mo
+                #------------start sparse matrix----------
+                requirements = sp.csc_matrix(B_so + N_mo)
+                X_gamma = (requirements * theSum).toarray()
+                #------------end sparse matrix----------
             else:
                 X_gamma = np.zeros([org, com, com])
                 for I in range(org):
-                    Bo = X[I, :, :] * invg
-                    Bo_so = Bo * so
-                    No = X[I, :, :] * one_over(V_bar.sum(0))
-                    No_mo = No * mo
-                    X_gamma[I, :, :] = (Bo_so + No_mo).dot(theSum)
+                    Bo_so = (X[I, :, :] * invg) * so
+                    No_mo = (X[I, :, :] * one_over(V_bar.sum(0))) * mo
+                    #------------start sparse matrix----------
+                    requirements = sp.csc_matrix(B_so + N_mo)
+                    X_gamma[I, :, :] = (requirements * theSum).toarray()
+                    #------------start sparse matrix----------
             return X_gamma
 
         A_gamma = apply_to_requirements(self.U)
@@ -1375,13 +1387,25 @@ def aggregate_regions_vectorised(X, AV=None, axis=None, regions=None):
     pos = np.zeros((len(AV), max(AV)), dtype=int)
     pos[np.arange(len(AV)), AV - 1] = 1
 
+    if ((X==0).sum() / X.size) > 0.50:
+        sparse = True
+        X = sp.csc_matrix(X)
+    else:
+        sparse = False
+
     if axis == 0 or axis is None:
         # Generate aggregation matrix
         entries_per_region = int(X.shape[0]/len(AV))
         agg = np.kron(pos, np.eye(entries_per_region, dtype=int))
 
-        # Aggregate rows
-        X = agg.T.dot(X)
+        if sparse:
+            #-----------start-sparse matrix----------------
+            agg = sp.csc_matrix(agg)
+            X = agg.T * X
+            #-------------end-sparse matrix----------------
+        else:
+            # Aggregate rows
+            X = agg.T.dot(X)
 
     if axis == 1 or axis is None:
         # Generate aggregation matrix
@@ -1389,7 +1413,14 @@ def aggregate_regions_vectorised(X, AV=None, axis=None, regions=None):
         agg = np.kron(pos, np.eye(entries_per_region, dtype=int))
 
         # Aggregate columns
-        X = X.dot(agg)
+        if sparse:
+            agg = sp.csc_matrix(agg)
+            X = X * agg
+        else:
+            X = X.dot(agg)
+
+    if sparse:
+        X = X.toarray()
 
     return X
 
