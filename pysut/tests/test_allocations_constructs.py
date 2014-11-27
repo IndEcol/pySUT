@@ -512,10 +512,12 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SupplyUseTable(U=self.Uu, V=self.V, E_bar=self.E_bar, Xi=self.Xi, F=self.F)
-        A, S, __, __ = sut.psc_agg(keep_size=False)
+        A, S, __, __, Z, F_con = sut.psc_agg(keep_size=False)
 
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(np.empty(0), Z, atol=self.atol)
+        npt.assert_allclose(np.empty(0), F_con, atol=self.atol)
 
 
     def test_partition_coefficients(self):
@@ -553,6 +555,27 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(F_con0, F_con, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+
+
+    def test_pc_agg_noflows(self):
+        """ Tests partition aggregation construct on SuUT"""
+
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.        ,  0.95      ,  0.        ]])
+
+
+        S0 = np.array([[2.5       ,  4.8       ,  1.63636364],
+                       [0.        ,  0.2       ,  0.        ]])
+
+        nothing = np.empty(0)
+
+        sut = SupplyUseTable(U=self.Uu, V=self.V, PSI=self.PSI, F=self.F)
+        A, S, __, __, Z, F_con = sut.pc_agg(keep_size=False, return_flows=False)
+
+        npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
 
 
@@ -668,10 +691,12 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SupplyUseTable(U=self.Uu, V=self.V, E_bar=self.E_bar, F=self.F)
-        A, S, __, __ = sut.lsc(keep_size=False)
+        A, S, __, __, Z, F_con = sut.lsc(keep_size=False)
 
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(Z, np.empty(0))
+        npt.assert_allclose(F_con, np.empty(0))
 
     def test_lsc_with_absolue_flows(self):
         """ Tests Lump Sum Construct on SuUT"""
@@ -742,6 +767,27 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(F_con0, F_con, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+
+    def test_esc_nonsquare_noflow(self):
+        """ Test European System Construct on non-square system """
+
+
+        A0 = np.array([[ 0.        ,  0.        ,  0.        ],
+                       [ 0.        ,  0.        ,  0.06818182],
+                       [ 2.        ,  0.55      ,  0.        ]])
+
+        S0 = np.array([[ 5.        ,  3.8       ,  1.63636364],
+                       [ 0.        ,  0.2       ,  0.        ]])
+
+        sut = SupplyUseTable(U=self.Uu, V=self.V, F=self.F, E_bar = self.E_bar)
+        A, S, nn_in, nn_out, Z, F_con = sut.esc(return_flows=False)
+
+        nothing = np.empty(0)
+
+        npt.assert_allclose(nothing, Z, atol=self.atol)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(nothing, F_con, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
 
     def test_esc_square(self):
@@ -821,6 +867,27 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_allclose(S0, S, atol=self.atol)
 
 
+    def test_btc_square_noflow(self):
+        """Tests Byproduct Technology Construct on square SuUT"""
+
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [-0.5       ,  0.        ,  0.06818182],
+                       [2.        ,  0.6875    ,  0.        ]])
+
+        S0 = np.array([[5.        ,  4.75      ,  1.63636364],
+                       [0.        ,  0.25      ,  0.        ]])
+
+        sut = SupplyUseTable(U=self.Ua, V=self.Va, F=self.Fa)
+        A, S, nn_in, nn_out, Z, F_con = sut.btc(keep_size=False,
+                                                return_flows=False)
+        nothing = np.empty(0)
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(nothing, Z, atol=self.atol)
+        npt.assert_allclose(nothing, F_con, atol=self.atol)
+
+
     def test_ctc(self):
         """ Tests Commodity Technology Construct on square SuUT"""
 
@@ -848,4 +915,32 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_allclose(S0, S, atol=self.atol)
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(F_con0, F_con, atol=self.atol)
+
+    def test_ctc_noflow(self):
+        """ Tests Commodity Technology Construct on square SuUT"""
+
+        Z0 = np.array([[0.    ,  0.    ,  0.    ],
+                       [0.    ,  0.    ,  0.75  ],
+                       [3.3125,  3.4375,  0.    ]])
+
+
+        A0 = np.array([[0.        ,  0.        ,  0.        ],
+                       [0.        ,  0.        ,  0.06818182],
+                       [1.65625   ,  0.6875    ,  0.        ]])
+
+
+        F_con0 = np.array([[5.25,  23.75,  18.  ],
+                           [-0.25,   1.25,   0.  ]])
+
+
+        S0 = np.array([[2.625     ,  4.75      ,  1.63636364],
+                       [-0.125     ,  0.25      ,  0.        ]])
+
+        sut = SupplyUseTable(U=self.Ua, V=self.Va, F=self.Fa)
+        A, S, nn_in, nn_out, Z, F_con = sut.ctc(return_flows=False)
+
+        npt.assert_allclose(A0, A, atol=self.atol)
+        npt.assert_allclose(S0, S, atol=self.atol)
+        npt.assert_allclose(np.empty(0), Z, atol=self.atol)
+        npt.assert_allclose(np.empty(0), F_con, atol=self.atol)
 

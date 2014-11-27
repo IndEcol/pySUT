@@ -25,6 +25,7 @@ import sys
 import logging
 import numpy as np
 from scipy import sparse as sp
+from scipy.sparse import linalg as sl
 
 # check for correct version number
 if sys.version_info.major < 3:
@@ -96,12 +97,12 @@ class SupplyUseTable(object):
                  E_bar=None, Xi=None, PHI=None, PSI=None, Gamma=None):
         """ Basic initialisation and dimension check methods """
 
-        self.V = V   # mandatory
-        self.U = U   # mandatory
-        self.Y = Y   # optional
-        self.F = F   # optional
-        self.FY= FY  # optional
-        self.TL= TL  # optional
+        self.V = V          # mandatory
+        self.U = U          # mandatory
+        self.Y = Y          # optional
+        self.F = F          # optional
+        self.FY = FY        # optional
+        self.TL = TL        # optional
         self.l_pro = None
         self.l_ind = None
         self.l_ext = None
@@ -300,14 +301,19 @@ class SupplyUseTable(object):
 
     @property
     def q(self):
+        """ Vector of total product output, calculate from V, as property"""
         return self.V.sum(axis=1)
 
     @property
     def g(self):
+        """ Vector of total industry output, calculate from V, as property"""
         return self.V.sum(axis=0)
 
     @property
     def V_bar(self):
+        """
+        Table of primary production, calculated from V and E_bar, as property
+        """
         if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
             logging.warning("Assuming primary production is on diagonal")
             return ddiag(self.V)
@@ -317,17 +323,20 @@ class SupplyUseTable(object):
 
     @property
     def V_tild(self):
+        """
+        Table of secondary production, calculated from V, as property
+        """
         return self.V - self.V_bar
 
 
     def g_V(self):
         """ Compute total industrial output g from supply table V."""
-        logging.warning("Planned deprecation of g_V(), use g instead")
+        logging.warning("Planned deprecation of g_V(), use property 'g' instead")
         return self.g
 
     def q_V(self):
         """ Compute total product output g from supply table V."""
-        logging.warning("Planned deprecation of q_V(), use q instead")
+        logging.warning("Planned deprecation of q_V(), use property 'q' instead")
         return self.q
 
     def return_diag_V(self):
@@ -868,13 +877,17 @@ class SupplyUseTable(object):
             self.__pa_coeff()
 
         # Partitioning of product flows
-        Z = self.U.dot(self.PHI)  # <-- eq:PCagg
+        Z = (self.__sU * self.__sPHI).toarray()  # <-- eq:PCagg
 
         # Partitioning of environmental extensions
         if self.F is not None:
-            F_con = self.F.dot(self.PHI)  # <-- eq:PCEnvExt
+            F_con = (self.__sF * self.__sPHI).toarray()  # <-- eq:PCEnvExt
 
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
+
+        if not return_flows:
+            Z = np.empty(0)
+            F_con = np.empty(0)
 
         return (A, S, nn_in, nn_out, Z, F_con)
 
@@ -916,11 +929,14 @@ class SupplyUseTable(object):
         S = np.empty(0)
 
         # Construction of Product Flows  # <-- eq:PSCagg
-        Z = (self.U - self.Xi.dot(self.V_tild)).dot(self.E_bar.T)
+        # ------------- sparse matrix start ---------------------
+        Z = ((self.__sU - self.__sXi * self.__sV_tild) * self.__sE_bar.T
+            ).toarray()
+        # ------------- sparse matrix end ---------------------
 
         # Allocation of Environmental Extensions
         if self.F is not None:
-            F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
+            F_con = (self.__sF * self.__sE_bar.T).toarray()  #eq:NonProdBalEnvExt
 
         # Normalizing
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar, F_con, keep_size)
@@ -930,9 +946,11 @@ class SupplyUseTable(object):
             logging.warning("Unnormalized flows (Z, F_con) for this construct"
                             " may differ from calculated flows for a given"
                             " final demand")
-            return (A, S, nn_in, nn_out, Z, F_con)
         else:
-            return (A, S, nn_in, nn_out)
+            Z = np.empty(0)
+            F_con = np.empty(0)
+
+        return (A, S, nn_in, nn_out, Z, F_con)
 
 
     def aac_agg(self, nmax=np.Inf, res_tol=0, keep_size=True, return_flows=True):
@@ -976,17 +994,30 @@ class SupplyUseTable(object):
         A_gamma, F_gamma = self.__alternate_tech(nmax=nmax, res_tol=res_tol)
 
         # Allocation step
-        Z = (self.U - A_gamma.dot(self.V_tild)).dot(self.E_bar.T) + \
-                A_gamma * self.V_tild.sum(1)  # <-- eq:AACagg
+        sA_gamma = sp.csc_matrix(A_gamma)
+
+        # Perform construct
+            #------------------ matrix  notation start ------------------
+        Z = ((self.__sU - sA_gamma * self.__sV_tild) * self.__sE_bar.T
+            #------------------ matrix  notation end --------------------
+            ).toarray() + A_gamma * self.V_tild.sum(1)  # <-- eq:AACagg
 
 
         # Partitioning of environmental extensions
         if self.F is not None:
-            F_con = (self.F - F_gamma.dot(self.V_tild)).dot(self.E_bar.T) + \
-                    F_gamma * self.V_tild.sum(1)   # <-- eq:AACEnvExt
+            sF_gamma = sp.csc_matrix(F_gamma)
+                    #------------------ matrix  notation start ---------------
+            F_con = ((self.__sF - sF_gamma * self.__sV_tild) * self.__sE_bar.T
+                    #------------------ matrix  notation end -----------------
+                    ).toarray() + F_gamma * self.V_tild.sum(1)  # eq:AACEnvExt
 
         # Normalize and return
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
+
+        if not return_flows:
+            Z = np.empty(0)
+            F_con = np.empty(0)
+
         return (A, S, nn_in, nn_out, Z, F_con)
 
     def lsc(self, keep_size=True, return_flows=False):
@@ -1024,15 +1055,17 @@ class SupplyUseTable(object):
         F_con = np.empty(0)
         S = np.empty(0)
 
+        #------------start sparse matrix notation----------------------------
         # Allocation of Product Flows
-        Z = self.U.dot(self.E_bar.T)  # <-- eq:LSCagg
-        V_dd = self.E_bar * self.g  # <-- eq:LSCagg
+        Z = (self.__sU * self.__sE_bar.T).toarray()  # <-- eq:LSCagg
 
         # Allocation of Environmental Extensions
         if self.F is not None:
-            F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
+            F_con = (self.__sF * self.__sE_bar.T).toarray()  # eq:NonProdBalEnvExt
+        #------------ end sparse matrix notation----------------------------
 
         # Normalizing
+        V_dd = self.E_bar * self.g  # <-- eq:LSCagg
         (A, S, nn_in, nn_out) = matrix_norm(Z, V_dd, F_con, keep_size)
 
         # Return allocated values
@@ -1040,9 +1073,11 @@ class SupplyUseTable(object):
             logging.warning("Unnormalized flows (Z, F_con) for this construct"
                             " may differ from calculated flows for a given"
                             " final demand")
-            return (A, S, nn_in, nn_out, Z, F_con)
         else:
-            return (A, S, nn_in, nn_out)
+            Z = np.empty(0)
+            F_con = np.empty(0)
+
+        return (A, S, nn_in, nn_out, Z, F_con)
 
     def itc(self, keep_size=True, return_flows=True):
         """Performs Industry Technology Construct of SuUT inventory
@@ -1071,12 +1106,19 @@ class SupplyUseTable(object):
         F_con = np.empty(0)
         S = np.empty(0)
 
-        Z = (self.U * _one_over(self.g)).dot(self.V.T)  # <-- eq:itc
+        # ------------- sparse matrix start ---------------------
+        V = self.__sV
+        Z = (sp.csc_matrix(self.U * _one_over(self.g)) * V.T).toarray()  # eq:itc
 
         if self.F is not None:
-            F_con = (self.F * _one_over(self.g)).dot(self.V.T)  # <-- eq:ITCEnvExt
+            F_con = (sp.csc_matrix(self.F * _one_over(self.g)) * V.T).toarray()
+        # ------------- sparse matrix end ---------------------
 
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
+
+        if not return_flows:
+            Z = np.empty(0)
+            F_con = np.empty(0)
 
         return (A, S, nn_in, nn_out, Z, F_con)
 
@@ -1113,21 +1155,23 @@ class SupplyUseTable(object):
 
         # When no explicit designation of primary production, assume it is on
         # the diagonal if the supply table is square
-        if (self.E_bar is None) and (self.V.shape[0] == self.V.shape[1]):
-            E_bar = np.eye(self.V.shape[0])
-            logging.warning("ESC: assuming primary production is on diagonal")
-        else:
-            E_bar = self.E_bar
 
+        # ---------------start sparse matrix -----------------------------
         # Construct product flows
-        Z = self.U.dot(E_bar.T)  # <--eq:esc_notsquare
+        Z = (self.__sU * self.__sE_bar.T).toarray()
 
         # Construct extension flows
         if self.F is not None:
-            F_con = self.F.dot(E_bar.T)  #  <-- eq:ESCEnvExt
+            F_con = (self.__sF * self.__sE_bar.T).toarray()  # eq:ESCEnvExt
+
+        # ---------------end sparse matrix -----------------------------
 
         # Normalize and return
         A, S, nn_in, nn_out = matrix_norm(Z, self.V, F_con, keep_size)
+
+        if not return_flows:
+            Z = np.empty(0)
+            F_con = np.empty(0)
 
         return A, S, nn_in, nn_out, Z, F_con
 
@@ -1159,17 +1203,23 @@ class SupplyUseTable(object):
         """
         # Default values
         F_con = np.empty(0)
+        Z = np.empty(0)
         S = np.empty(0)
 
-        inv_V = np.linalg.inv(self.V)
-        A = self.U.dot(inv_V)  # <-- eq:ctc
-        Z = A * self.q
+        inv_V = sl.inv(self.__sV)
+        A = (self.__sU * inv_V).toarray()  # <-- eq:ctc
 
         if self.F is not None:
-            S = self.F.dot(inv_V)
+            S = (self.__sF * inv_V).toarray()
+
+
+        if return_flows:
+            Z = A * self.q
             F_con = S * self.q  # <--eq:CTCEnvExt
 
-        __, __, nn_in, nn_out = matrix_norm(Z, self.V, just_filters=True)
+        # Just get filters
+        __, __, nn_in, nn_out = matrix_norm(A, self.V, just_filters=True)
+
 
         return (A, S, nn_in, nn_out, Z, F_con)
 
@@ -1205,22 +1255,24 @@ class SupplyUseTable(object):
         F_con = np.empty(0)
         S = np.empty(0)
 
-        if self.E_bar is None and (self.V.shape[0] == self.F.shape[1]):
-            E_bar = np.eye(self.V.shape[0])
-        else:
-            E_bar = self.E_bar
-
+        # -------------------sparse matrix ----------------------------
         # The construct
-        Z = (self.U - self.V_tild).dot(E_bar.T)  # <-- eq:btc
+        Z = ((self.__sU - self.__sV_tild) * self.__sE_bar.T).toarray()
 
         if self.F is not None:
-            F_con = self.F.dot(E_bar.T)  # <-- eq:NonProdBalEnvExt
+            # eq:NonProdBalEnvExt
+            F_con = (self.__sF * self.__sE_bar.T).toarray()
+        # -------------------sparse matrix ----------------------------
 
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar, F_con, keep_size)
 
+        if not return_flows:
+            Z = np.empty(0)
+            F_con = np.empty(0)
+
         return (A, S, nn_in, nn_out, Z, F_con)
 
-    """ HELPER FUNCTIONS"""
+    """ HELPER/HIDDEN METHODS"""
 
     def __pa_coeff(self):
         """Calculates partition coefficients from supply and properties table
@@ -1291,7 +1343,7 @@ class SupplyUseTable(object):
             s = Gamma.shape
             tmp = np.zeros((s[0], s[2]))
             for i in range(Gamma.shape[1]):
-                tmp += diaginv(lay[i, :].dot(self.E_bar)).dot(
+                tmp += self.__diaginv(lay[i, :].dot(self.E_bar)).dot(
                        Gamma[:, i, :]).dot(ddiag(lay[i, :]))
             Gamma = tmp
 
@@ -1352,6 +1404,69 @@ class SupplyUseTable(object):
 
         return A_gamma, S_gamma
 
+    @property
+    def __sU(self):
+        """ Returns sparse version of self.U """
+        return sp.csc_matrix(self.U)
+
+    @property
+    def __sV(self):
+        return sp.csc_matrix(self.V)
+        """ Returns sparse version of self.V """
+    @property
+    def __sV_bar(self):
+        """ Returns sparse version of self.V_bar """
+        return sp.csc_matrix(self.V_bar)
+
+    @property
+    def __sV_tild(self):
+        """ Returns sparse version of self.V_tild """
+        return sp.csc_matrix(self.V_tild)
+
+    @property
+    def __sF(self):
+        """ Returns sparse version of self.F """
+        return sp.csc_matrix(self.F)
+
+    @property
+    def __sXi(self):
+        """ Returns sparse version of self.Xi """
+        return sp.csc_matrix(self.Xi)
+
+    @property
+    def __sPHI(self):
+        """ Returns sparse version of self.PHI """
+        return sp.csc_matrix(self.PHI)
+
+    @property
+    def __sE_bar(self):
+        """ Returns sparse version of self.E_bar """
+        if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
+            logging.warning("Assuming primary production is on diagonal")
+            return sp.eye(self.V.shape[0])
+        else:
+            return sp.csc_matrix(self.E_bar)
+
+    def __diaginv(self, x):
+        """Diagonalizes a vector and inverses it, even if it contains zero values.
+
+        * Element-wise divide a vector of ones by x
+        * Replace any instance of Infinity by 0
+        * Diagonalize the resulting vector
+
+        Parameters
+        ----------
+        x : vector to be diagonalized
+
+        Returns
+        --------
+        y : diagonalized and inversed vector
+           Values on diagonal = 1/coefficient, or 0 if coefficient == 0
+
+        """
+        y = np.ones(len(x)) / x
+        y[y == np.Inf] = 0
+        return ddiag(y)
 #############################################################################
 # Helper functions outside object
 def aggregate_regions_vectorised(X, AV=None, axis=None, regions=None):
@@ -1624,26 +1739,6 @@ def restore_size(X, nn_in=None, nn_out=None):
     return X1
 
 
-def diaginv(x):
-    """Diagonalizes a vector and inverses it, even if it contains zero values.
-
-    * Element-wise divide a vector of ones by x
-    * Replace any instance of Infinity by 0
-    * Diagonalize the resulting vector
-
-    Parameters
-    ----------
-    x : vector to be diagonalized
-
-    Returns
-    --------
-    y : diagonalized and inversed vector
-       Values on diagonal = 1/coefficient, or 0 if coefficient == 0
-
-    """
-    y = np.ones(len(x)) / x
-    y[y == np.Inf] = 0
-    return ddiag(y)
 
 def _one_over(x):
     """Simple function to invert each element of vector. if 0, stays 0, not Inf
