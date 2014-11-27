@@ -229,14 +229,14 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.,  3, 6., 0],
                        [0,   0, 0,  0.1],
                        [0,   0, 0,  0]])
-        npt.assert_array_equal(V0, sut.V_bar())
+        npt.assert_array_equal(V0, sut.V_bar)
 
         # Test V_tild: secondary supply flows only
         V0 = np.array([[0,   0, 0,  12],
                        [5.,  0, 0,  0],
                        [0,   0, 0,  0],
                        [0,   0, 0,  0]])
-        npt.assert_array_equal(V0, sut.V_tild())
+        npt.assert_array_equal(V0, sut.V_tild)
 
 
 
@@ -255,14 +255,14 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.,  3, 0., 0],
                        [0,   0, 0,  0],
                        [0,   0, 0,  0]])
-        npt.assert_array_equal(V0, sut.V_bar())
+        npt.assert_array_equal(V0, sut.V_bar)
 
         # Test V_tild: secondary supply flows only
         V0 = np.array([[0.0, 0, 0,  12],
                        [5.,  0, 6., 0],
                        [0,   0, 0,  0.1],
                        [0,   0, 0,  0]])
-        npt.assert_array_equal(V0, sut.V_tild())
+        npt.assert_array_equal(V0, sut.V_tild)
 
 
 
@@ -627,7 +627,7 @@ class TestAllocationsConstructs(unittest.TestCase):
         sut.build_E_bar()
         sut.build_mr_Xi()
 
-        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_unnormalized_flows=True)
+        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_flows=True)
         # Ca_j production (secondary to Ca_i) displaces No_j
         # Us_k production (secondary to US_i) displaces US_k
         Z0 = np.array([[ 0. ,  0. ,  0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ],
@@ -652,7 +652,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                   regions=3)
 
         sut.build_mr_Xi()
-        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_unnormalized_flows=True)
+        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_flows=True)
         npt.assert_allclose(self.Z_3r2i3p, Z, atol=self.atol)
 
 
@@ -685,7 +685,7 @@ class TestAllocationsConstructs(unittest.TestCase):
 
         sut = SupplyUseTable(U=self.Uu, V=self.V, E_bar=self.E_bar, F=self.F)
         __, __ , __,__, Z, F_con = sut.lsc(keep_size=False,
-                                           return_unnormalized_flows=True)
+                                           return_flows=True)
 
         npt.assert_allclose(Z0, Z, atol=self.atol)
         npt.assert_allclose(F_con0, F_con, atol=self.atol)

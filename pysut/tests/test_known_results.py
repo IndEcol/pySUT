@@ -226,8 +226,8 @@ class KnownResultsTestCase(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             mySUT.compare_IndustrialUseAndSupply(), IndSupply_Use, 9)
         np.testing.assert_array_equal(mySUT.supply_diag_check(), SupplyDiag)
-        np.testing.assert_array_equal(mySUT.g_V(), g_V)
-        np.testing.assert_array_equal(mySUT.q_V(), q_V)
+        np.testing.assert_array_equal(mySUT.g, g_V)
+        np.testing.assert_array_equal(mySUT.q, q_V)
         np.testing.assert_array_equal(mySUT.market_balance(), m_b)
 
     def test_SUT_product_removal(self):

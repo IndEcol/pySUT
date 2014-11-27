@@ -95,19 +95,20 @@ class SupplyUseTable(object):
                  unit=None, version=None, year=None, name='SUT', regions=1,
                  E_bar=None, Xi=None, PHI=None, PSI=None, Gamma=None):
         """ Basic initialisation and dimension check methods """
-        self.V = V # mandatory
-        self.U = U # mandatory
-        self.Y = Y # optional
-        self.F = F # optional
-        self.FY= FY# optional
-        self.TL= TL# optional
+
+        self.V = V   # mandatory
+        self.U = U   # mandatory
+        self.Y = Y   # optional
+        self.F = F   # optional
+        self.FY= FY  # optional
+        self.TL= TL  # optional
         self.l_pro = None
         self.l_ind = None
         self.l_ext = None
-       
+
         self.name = name  # optional
         self.regions = regions # Number of regions, for multiregional SUT
-        self.unit = unit  # optional       
+        self.unit = unit  # optional
         self.year = year  # optional
         self.version = version  # optional
 
@@ -187,8 +188,8 @@ class SupplyUseTable(object):
     def supply_diag_check(self):
         """ to apply the BTC, we need to have a non-zero diagonal for each producing sector.
         Determine which sectors produce: """
-        SupplySum_i = self.g_V()
-        SupplySum_p = self.q_V()
+        SupplySum_i = self.g
+        SupplySum_p = self.q
         SupplyDiag = self.V.diagonal()
         SupplyDiag_Eval = np.zeros((self.V.shape[0], 7))
         for m in range(0, self.V.shape[0]):
@@ -244,7 +245,7 @@ class SupplyUseTable(object):
                 logging.info(msg.format(offdiag_tot))
 
         # Check how many exclusive secondary products
-        exclus = (self.E_bar.sum(1) == 0) & (self.q_V() != 0)
+        exclus = (self.E_bar.sum(1) == 0) & (self.q != 0)
         exclus_tot = np.sum(exclus)
         if exclus_tot > 0:
             msg = "Found {} exclusive secondary products."
@@ -252,8 +253,7 @@ class SupplyUseTable(object):
 
         # Check how many secondary products are produced in greater amount than
         # their associated primary product
-        V_bar = self.V_bar()
-        big_sec = np.max(V_bar, 0) < np.max(self.V_tild(), 0)
+        big_sec = np.max(self.V_bar, 0) < np.max(self.V_tild, 0)
         big_sec_tot = np.sum(big_sec)
         if big_sec_tot > 0:
             msg = ("Found {} secondary products that are produced in greater"
@@ -261,7 +261,7 @@ class SupplyUseTable(object):
             logging.info(msg.format(big_sec_tot))
 
             if full_debug:
-                bo_bar = np.argmax(V_bar[:, big_sec], axis=0)
+                bo_bar = np.argmax(self.V_bar[:, big_sec], axis=0)
                 bo_all = np.argmax(self.V[:, big_sec], axis=0)
                 header = np.array(["Country",
                                    "Industry",
@@ -272,7 +272,7 @@ class SupplyUseTable(object):
                 strange = np.row_stack([header,
                                 np.column_stack([self.l_ind[big_sec, 0:2],
                                                    self.l_pro[bo_bar,1],
-                                                   V_bar[bo_bar, big_sec],
+                                                   self.V_bar[bo_bar, big_sec],
                                                    self.l_pro[bo_all,1],
                                                    self.V[bo_all, big_sec]])])
 
@@ -298,13 +298,37 @@ class SupplyUseTable(object):
     Basic computations, row sum, col sum, etc.
     """
 
+    @property
+    def q(self):
+        return self.V.sum(axis=1)
+
+    @property
+    def g(self):
+        return self.V.sum(axis=0)
+
+    @property
+    def V_bar(self):
+        if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
+            logging.warning("Assuming primary production is on diagonal")
+            return ddiag(self.V)
+        else:
+            return self.V * self.E_bar
+        return V_bar
+
+    @property
+    def V_tild(self):
+        return self.V - self.V_bar
+
+
     def g_V(self):
         """ Compute total industrial output g from supply table V."""
-        return self.V.sum(axis=0)
+        logging.warning("Planned deprecation of g_V(), use g instead")
+        return self.g
 
     def q_V(self):
         """ Compute total product output g from supply table V."""
-        return self.V.sum(axis=1)
+        logging.warning("Planned deprecation of q_V(), use q instead")
+        return self.q
 
     def return_diag_V(self):
         """ Returns the diagonal of the supply table in matrix form : V^              """
@@ -545,25 +569,6 @@ class SupplyUseTable(object):
         self.E_bar = E_bar
         self._check_secondary_prod()
 
-    def V_bar(self):
-        if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
-            V_bar = ddiag(self.V)
-            logging.warning("Assuming primary production is on diagonal")
-        else:
-            V_bar = self.V * self.E_bar
-
-        return V_bar
-
-    def V_tild(self):
-        if self.E_bar is None and (self.V.shape[0] == self.V.shape[1]):
-            V_tild = self.V - ddiag(self.V)
-            logging.warning("Assuming primary production is on diagonal")
-        else:
-            E_tild = 1 - self.E_bar
-            V_tild = self.V * E_tild
-
-        return V_tild
-
     def primary_market_shares_of_regions(self):
         """ Calculate a region's share in each product's global primary supply
 
@@ -586,8 +591,7 @@ class SupplyUseTable(object):
 
 
         # Aggregate primary supply within each region, across industries
-        V_bar = self.V_bar()
-        Vagg = aggregate_within_regions(V_bar, self.regions, axis=1)
+        Vagg = aggregate_within_regions(self.V_bar, self.regions, axis=1)
 
         # Aggregate primary supply within each product group, across regions
         e = np.ones(self.regions, dtype=int)
@@ -597,7 +601,7 @@ class SupplyUseTable(object):
         q_bar = np.sum(Vagg, 1)
 
         # Normalize regional production relative to total world production
-        D = Vagg.T * one_over(q_bar)
+        D = Vagg.T * _one_over(q_bar)
 
         return D
 
@@ -654,19 +658,17 @@ class SupplyUseTable(object):
 
         """
 
-        V_bar = self.V_bar()
-        V_prim = V_bar.copy()
-
+        V_prim = self.V_bar.copy()
         if exclude_minority_prod:
             # Remove primary productions that are minority productions
-            not_prim = V_bar.max(0) < self.V.max(0)
-            V_prim[:, not_prim] = 0.0  # <-- local V_bar
+            not_prim = V_prim.max(0) < self.V.max(0)
+            V_prim[:, not_prim] = 0.0
 
 
         # Share of global primary production by held industries*countries
         # [rows] of product groups [columns]
         X = aggregate_regions_vectorised(V_prim.T, axis=1, regions=self.regions)
-        D = X * one_over(X.sum(axis=0))
+        D = X * _one_over(X.sum(axis=0))
 
         # Check that there is globally at least one eligible primary producer
         # for each product.
@@ -682,7 +684,7 @@ class SupplyUseTable(object):
 
         # Otherwise, use local primary production mix (could be more than one
         # if multiple primary producers
-        Gamma_prim = V_prim.T * one_over(V_prim.sum(1))
+        Gamma_prim = V_prim.T * _one_over(V_prim.sum(1))
 
         self.Gamma = Gamma_excl + Gamma_prim
 
@@ -712,19 +714,10 @@ class SupplyUseTable(object):
     Constructs. Below, it is always assumed that U and V are present. For the industrial stressorts, F must be present as well.
     """
 
-#    def Build_BTC_A_matrix_extended(self):
-#        """ Builds the A-matrix of the extended BTC construct
-#        return: Extended A matrix for BTC construct"""
-#        self.A_BTC = np.concatenate((np.concatenate((np.dot(self.U,np.linalg.inv(self.return_diag_V())),-1 * np.eye(self.V.shape[0])),axis=1), np.concatenate((np.dot(self.return_offdiag_V(),np.linalg.inv(self.return_diag_V())),np.zeros((self.V.shape[0],self.V.shape[0]))),axis=1)),axis = 0)
-#        return self.A_BTC
-#
-#    def Build_BTC_L_matrix_extended(self):
-#        L_prov = np.linalg.inv(np.eye(2*self.V.shape[0])-self.Build_BTC_A_matrix_extended())
-#        self.L_BTC = L_prov[:,0:self.V.shape[0]]
-#        return self.L_BTC
     """ General: Determine L matrix"""
 
     def Build_L_matrix(self, A):
+        logging.warning("Planned removal of Build_L_matrix from class definition.")
         return np.linalg.inv(np.eye(self.V.shape[0]) - A)
 
     """ byproduct technology construct (BTC)"""
@@ -765,9 +758,9 @@ class SupplyUseTable(object):
             try:
                 V_inv = np.linalg.inv(self.V)
                 try:
-                    g_inv = np.linalg.inv(np.diag(self.g_V()))
+                    g_inv = np.linalg.inv(np.diag(self.g))
                     self.A_CTC_ixi = np.dot(
-                        np.dot(np.diag(self.g_V()), V_inv), np.dot(self.U, g_inv))
+                        np.dot(np.diag(self.g), V_inv), np.dot(self.U, g_inv))
                 except:
                     raise ValueError(
                         'Error: Diagonal of total industry output g cannot be inverted. Singular matrix.')
@@ -804,8 +797,8 @@ class SupplyUseTable(object):
         A_ITC_ixi = V'*q^-1  *  U * g^-1"""
 
         try:
-            self.g_hat_inv = np.linalg.inv(np.diag(self.g_V()))
-            self.q_hat_inv = np.linalg.inv(np.diag(self.q_V()))
+            self.g_hat_inv = np.linalg.inv(np.diag(self.g))
+            self.q_hat_inv = np.linalg.inv(np.diag(self.q))
             self.A_ITC_ixi = np.dot(
                 np.dot(self.V.transpose(), self.q_hat_inv), np.dot(self.U, self.g_hat_inv))
         except:
@@ -820,8 +813,8 @@ class SupplyUseTable(object):
         A_ITC_cxc = U * g^-1  *  V'*q^-1 """
 
         try:
-            self.g_hat_inv = np.linalg.inv(np.diag(self.g_V()))
-            self.q_hat_inv = np.linalg.inv(np.diag(self.q_V()))
+            self.g_hat_inv = np.linalg.inv(np.diag(self.g))
+            self.q_hat_inv = np.linalg.inv(np.diag(self.q))
             self.A_ITC_cxc = np.dot(
                 np.dot(self.U, self.g_hat_inv), np.dot(self.V.transpose(), self.q_hat_inv))
         except:
@@ -831,14 +824,14 @@ class SupplyUseTable(object):
 
     def Build_ITC_cxc_S(self):
         """Returns stressor coefficient matrix for the ITC cxc construct."""
-        self.S_ITC_cxc = np.dot(np.dot(self.F, np.linalg.inv(np.diag(self.g_V()))), np.dot(
-            self.V.transpose(), np.linalg.inv(np.diag(self.q_V()))))
+        self.S_ITC_cxc = np.dot(np.dot(self.F, np.linalg.inv(np.diag(self.g))), np.dot(
+            self.V.transpose(), np.linalg.inv(np.diag(self.q))))
         return self.S_ITC_cxc
 
 
     """ Aggregation Constructs"""
 
-    def pc_agg(self, keep_size=True):
+    def pc_agg(self, keep_size=True, return_flows=True):
         """Performs Partition Aggregation Construct of SuUT inventory
 
         Parameters
@@ -886,7 +879,7 @@ class SupplyUseTable(object):
         return (A, S, nn_in, nn_out, Z, F_con)
 
 
-    def psc_agg(self, keep_size=True, return_unnormalized_flows=False):
+    def psc_agg(self, keep_size=True, return_flows=False):
         """Performs Product Substitution aggregation Construct
 
         Args
@@ -894,7 +887,7 @@ class SupplyUseTable(object):
         keep_size: by default, keep all rows and columns in normalized A-matrix
                    even if some rows/columns should be NaN
 
-        return_unnormalized_flows: Return unnormalized flows in addition to
+        return_flows: Return unnormalized flows in addition to
                                    normalized coefficients.
 
         Returns
@@ -904,7 +897,7 @@ class SupplyUseTable(object):
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
 
-        If return_unnormalized_flows is True :
+        If return_flows is True :
             Z : constructed intermediate flow matrix [com,com]
             F_con : Constructed emissions [ext,com]
 
@@ -923,17 +916,17 @@ class SupplyUseTable(object):
         S = np.empty(0)
 
         # Construction of Product Flows  # <-- eq:PSCagg
-        Z = (self.U - self.Xi.dot(self.V_tild())).dot(self.E_bar.T)
+        Z = (self.U - self.Xi.dot(self.V_tild)).dot(self.E_bar.T)
 
         # Allocation of Environmental Extensions
         if self.F is not None:
             F_con = self.F.dot(self.E_bar.T)  # <-- eq:NonProdBalEnvExt
 
         # Normalizing
-        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar(), F_con, keep_size)
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar, F_con, keep_size)
 
         # Return allocated values
-        if return_unnormalized_flows:
+        if return_flows:
             logging.warning("Unnormalized flows (Z, F_con) for this construct"
                             " may differ from calculated flows for a given"
                             " final demand")
@@ -942,7 +935,7 @@ class SupplyUseTable(object):
             return (A, S, nn_in, nn_out)
 
 
-    def aac_agg(self, nmax=np.Inf, res_tol=0, keep_size=True):
+    def aac_agg(self, nmax=np.Inf, res_tol=0, keep_size=True, return_flows=True):
         """ Alternative Activity aggregation Construct of SuUT inventory
 
         Args
@@ -978,26 +971,25 @@ class SupplyUseTable(object):
         S = np.empty(0)
 
         # Basic variables
-        V_tild = self.V_tild()
 
         # Calculate competing technology requirements
         A_gamma, F_gamma = self.__alternate_tech(nmax=nmax, res_tol=res_tol)
 
         # Allocation step
-        Z = (self.U - A_gamma.dot(V_tild)).dot(self.E_bar.T) + \
-                A_gamma * V_tild.sum(1)  # <-- eq:AACagg
+        Z = (self.U - A_gamma.dot(self.V_tild)).dot(self.E_bar.T) + \
+                A_gamma * self.V_tild.sum(1)  # <-- eq:AACagg
 
 
         # Partitioning of environmental extensions
         if self.F is not None:
-            F_con = (self.F - F_gamma.dot(V_tild)).dot(self.E_bar.T) + \
-                    F_gamma * V_tild.sum(1)   # <-- eq:AACEnvExt
+            F_con = (self.F - F_gamma.dot(self.V_tild)).dot(self.E_bar.T) + \
+                    F_gamma * self.V_tild.sum(1)   # <-- eq:AACEnvExt
 
         # Normalize and return
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
         return (A, S, nn_in, nn_out, Z, F_con)
 
-    def lsc(self, keep_size=True, return_unnormalized_flows=False):
+    def lsc(self, keep_size=True, return_flows=False):
         """ Performs Lump-sum aggregation Construct of SuUT inventory
 
         Args
@@ -1005,7 +997,7 @@ class SupplyUseTable(object):
 
         keep_size: by default, keep all rows and columns in normalized A-matrix
                    even if some rows/columns should be NaN
-        return_unnormalized_flows: Return unnormalized flows in addition to
+        return_flows: Return unnormalized flows in addition to
                                    normalized coefficients.
 
         Returns
@@ -1015,7 +1007,7 @@ class SupplyUseTable(object):
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
 
-        If return_unnormalized_flows is True :
+        If return_flows is True :
             Z : constructed intermediate flow matrix [com,com]
             F_con : Constructed emissions [ext,com]
 
@@ -1034,7 +1026,7 @@ class SupplyUseTable(object):
 
         # Allocation of Product Flows
         Z = self.U.dot(self.E_bar.T)  # <-- eq:LSCagg
-        V_dd = self.E_bar * self.g_V()  # <-- eq:LSCagg
+        V_dd = self.E_bar * self.g  # <-- eq:LSCagg
 
         # Allocation of Environmental Extensions
         if self.F is not None:
@@ -1044,7 +1036,7 @@ class SupplyUseTable(object):
         (A, S, nn_in, nn_out) = matrix_norm(Z, V_dd, F_con, keep_size)
 
         # Return allocated values
-        if return_unnormalized_flows:
+        if return_flows:
             logging.warning("Unnormalized flows (Z, F_con) for this construct"
                             " may differ from calculated flows for a given"
                             " final demand")
@@ -1052,7 +1044,7 @@ class SupplyUseTable(object):
         else:
             return (A, S, nn_in, nn_out)
 
-    def itc(self, keep_size=True):
+    def itc(self, keep_size=True, return_flows=True):
         """Performs Industry Technology Construct of SuUT inventory
 
         Args
@@ -1079,18 +1071,17 @@ class SupplyUseTable(object):
         F_con = np.empty(0)
         S = np.empty(0)
 
-        g_inv = one_over(self.g_V())
-        Z = (self.U * g_inv).dot(self.V.T)  # <-- eq:itc
+        Z = (self.U * _one_over(self.g)).dot(self.V.T)  # <-- eq:itc
 
         if self.F is not None:
-            F_con = (self.F * g_inv).dot(self.V.T)  # <-- eq:ITCEnvExt
+            F_con = (self.F * _one_over(self.g)).dot(self.V.T)  # <-- eq:ITCEnvExt
 
         (A, S, nn_in, nn_out) = matrix_norm(Z, self.V, F_con, keep_size)
 
         return (A, S, nn_in, nn_out, Z, F_con)
 
 
-    def esc(self, keep_size=True):
+    def esc(self, keep_size=True, return_flows=True):
         """ Performs European System Construct on SuUT inventory
 
         Args
@@ -1142,7 +1133,7 @@ class SupplyUseTable(object):
 
 
 
-    def ctc(self):
+    def ctc(self, return_flows=True):
         """Performs Commodity Technology Construct of SuUT inventory
 
         Args
@@ -1172,18 +1163,18 @@ class SupplyUseTable(object):
 
         inv_V = np.linalg.inv(self.V)
         A = self.U.dot(inv_V)  # <-- eq:ctc
-        Z = A * self.q_V()
+        Z = A * self.q
 
         if self.F is not None:
             S = self.F.dot(inv_V)
-            F_con = S * self.q_V()  # <--eq:CTCEnvExt
+            F_con = S * self.q  # <--eq:CTCEnvExt
 
         __, __, nn_in, nn_out = matrix_norm(Z, self.V, just_filters=True)
 
         return (A, S, nn_in, nn_out, Z, F_con)
 
 
-    def btc(self, keep_size=True):
+    def btc(self, keep_size=True, return_flows=True):
         """Performs Byproduct Technology Construct of SuUT inventory
 
         Args
@@ -1220,16 +1211,17 @@ class SupplyUseTable(object):
             E_bar = self.E_bar
 
         # The construct
-        Z = (self.U - self.V_tild()).dot(E_bar.T)  # <-- eq:btc
+        Z = (self.U - self.V_tild).dot(E_bar.T)  # <-- eq:btc
 
         if self.F is not None:
             F_con = self.F.dot(E_bar.T)  # <-- eq:NonProdBalEnvExt
 
-        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar(), F_con, keep_size)
+        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar, F_con, keep_size)
 
         return (A, S, nn_in, nn_out, Z, F_con)
 
     """ HELPER FUNCTIONS"""
+
     def __pa_coeff(self):
         """Calculates partition coefficients from supply and properties table
 
@@ -1289,8 +1281,6 @@ class SupplyUseTable(object):
         com = self.V.shape[0]
         traceable = False
         org = 1 # check on this
-        V_tild = self.V_tild()
-        V_bar = self.V_bar()
         Gamma = self.Gamma
 
         # If a property layer is defined for Gamma, then evaluate unit
@@ -1308,10 +1298,10 @@ class SupplyUseTable(object):
         so = np.array(np.sum(self.V != 0, 0) == 1, dtype=int)
         mo = np.array(np.sum(self.V != 0, 0) != 1, dtype=int)
 
-        invg = one_over(self.g_V())
+        invg = _one_over(self.g)
 
         #================ Sparse Matrix Section ==========================
-        M = sp.csc_matrix(V_tild * one_over(V_bar.sum(0)))
+        M = sp.csc_matrix(self.V_tild * _one_over(self.V_bar.sum(0)))
         Gamma = sp.csc_matrix(Gamma)
 
         # Iteration 0: Prepare summation term used in definition of A_gamma
@@ -1329,7 +1319,7 @@ class SupplyUseTable(object):
             theSum = theSum + term
             n += 1
             res = term.sum()
-            print("residual: {:.2e}".format(res))
+            print("residual: {:+.2e}".format(res))
         #theSum = theSum.toarray()
         print("number of iterations:{}".format(n))
         #================ Sparse Matrix Section ==========================
@@ -1338,7 +1328,7 @@ class SupplyUseTable(object):
             """ Apply to X, representing either U or F """
             if not traceable:
                 B_so = (X * invg) * so
-                N_mo = (X * one_over(V_bar.sum(0))) * mo
+                N_mo = (X * _one_over(self.V_bar.sum(0))) * mo
                 #------------start sparse matrix----------
                 requirements = sp.csc_matrix(B_so + N_mo)
                 X_gamma = (requirements * theSum).toarray()
@@ -1347,7 +1337,7 @@ class SupplyUseTable(object):
                 X_gamma = np.zeros([org, com, com])
                 for I in range(org):
                     Bo_so = (X[I, :, :] * invg) * so
-                    No_mo = (X[I, :, :] * one_over(V_bar.sum(0))) * mo
+                    No_mo = (X[I, :, :] * _one_over(self.V_bar.sum(0))) * mo
                     #------------start sparse matrix----------
                     requirements = sp.csc_matrix(Bo_so + No_mo)
                     X_gamma[I, :, :] = (requirements * theSum).toarray()
@@ -1475,40 +1465,6 @@ def aggregate_within_regions(X, regions, axis=None):
 
     return X
 
-def collapse_dims(x, first2dimensions=False):
-    """Collapse 3-d or 4-d array in two dimensions
-
-    Parameters
-    ----------
-    x : 3d or 4d array to be collapsed
-
-    first2dimensions : Boolean : For 3d array, should the last two dimensions
-        be flattened together (default) or should the first two be
-        flattened together instead (=true)?
-
-    Returns
-    --------
-    z : Flatened 2d array
-
-    """
-
-    s = x.shape
-    if x.ndim == 4:
-        z = x.reshape((s[0] * s[1], s[2] * s[3]))
-    elif x.ndim == 3:
-        if first2dimensions:
-            z = x.reshape((s[0] * s[1], s[2]))
-        else:
-            z = x.reshape((s[0], s[1] * s[2]))
-    elif x.ndim == 2:
-        print('Already in 2-dimensional, pass')
-        z = x
-    else:
-        print('PROBLEM? ndim(Y) = {}'.format(x.ndim))
-    return z
-
-
-
 def matrix_norm(Z, V, F_con=np.empty(0), keep_size=False, just_filters=False):
     """ Normalizes a flow matrices, even if some rows and columns are null
 
@@ -1545,11 +1501,44 @@ def matrix_norm(Z, V, F_con=np.empty(0), keep_size=False, just_filters=False):
     nn_out : filter applied to cols (0 for removed cols, 1 for kept cols)
 
     """
+
     # Collapse dimensions
+    def _collapse_dims(x, first2dimensions=False):
+        """Collapse 3-d or 4-d array in two dimensions
+
+        Parameters
+        ----------
+        x : 3d or 4d array to be collapsed
+
+        first2dimensions : Boolean : For 3d array, should the last two dimensions
+            be flattened together (default) or should the first two be
+            flattened together instead (=true)?
+
+        Returns
+        --------
+        z : Flatened 2d array
+
+        """
+
+        s = x.shape
+        if x.ndim == 4:
+            z = x.reshape((s[0] * s[1], s[2] * s[3]))
+        elif x.ndim == 3:
+            if first2dimensions:
+                z = x.reshape((s[0] * s[1], s[2]))
+            else:
+                z = x.reshape((s[0], s[1] * s[2]))
+        elif x.ndim == 2:
+            print('Already in 2-dimensional, pass')
+            z = x
+        else:
+            print('PROBLEM? ndim(Y) = {}'.format(x.ndim))
+        return z
+
     if Z.ndim > 2:
-        Z = collapse_dims(Z)
+        Z = _collapse_dims(Z)
     if F_con.ndim > 2:
-        F_con = collapse_dims(F_con)
+        F_con = _collapse_dims(F_con)
 
     # Basic Variables
     com = np.size(V, 0)
@@ -1592,9 +1581,9 @@ def matrix_norm(Z, V, F_con=np.empty(0), keep_size=False, just_filters=False):
 
         # remove empty entried, diagonalize, inverse...
         if np.size(Z, 1) == com:
-            q_inv = one_over(q[nn_out])
+            q_inv = _one_over(q[nn_out])
         else:
-            q_inv = one_over(q_tr[nn_out])
+            q_inv = _one_over(q_tr[nn_out])
 
         # and use to normalize product and stressor flows.
         A = Z[nn_in, :][:, nn_out] * q_inv
@@ -1656,7 +1645,7 @@ def diaginv(x):
     y[y == np.Inf] = 0
     return ddiag(y)
 
-def one_over(x):
+def _one_over(x):
     """Simple function to invert each element of vector. if 0, stays 0, not Inf
 
     * Element-wise divide a vector of ones by x
