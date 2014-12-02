@@ -8,7 +8,7 @@ setup(
     description="Python class for efficient handling of supply and use tables (SUTs)",
     author_email="stefan.pauliuk@ntnu.no",
     license=open('LICENSE').read(),
-    install_requires=["numpy"],
+    install_requires=["numpy","scipy"],
     long_description=open('README.md').read(),
     url="https://github.com/stefanpauliuk/pySUT",
     classifiers=[
