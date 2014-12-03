@@ -3,10 +3,11 @@
 Created on Mon Aug 11 16:19:39 2014
 
 @author: Stefan Pauliuk, NTNU
+Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 """
 
-from .. import SupplyUseTable
-from .. import pysut
+from .. import SupplyUseTable # remove and import the class manually if this unit test is run as standalone script
+from .. import pysut # remove and import the class manually if this unit test is run as standalone script
 import numpy as np
 import numpy.testing as npt
 import unittest
@@ -19,7 +20,7 @@ class TestAllocationsConstructs(unittest.TestCase):
     def setUp(self):
         """
         We define simple Supply and Use Table systems to test all allocations
-        anc constructs.
+        and constructs.
 
         We first define a Supply and traceable Use Table system, with three
         products (i, j, k) and four industries (I, J1, J2, and K).
@@ -35,7 +36,7 @@ class TestAllocationsConstructs(unittest.TestCase):
 
         """
 
-        # absolute tolerance for assertion tests (rouding error)
+        # absolute tolerance for assertion tests (rounding error)
         self.atol = 1e-08
 
         # CASE 0
@@ -944,3 +945,5 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_allclose(np.empty(0), Z, atol=self.atol)
         npt.assert_allclose(np.empty(0), F_con, atol=self.atol)
 
+    if __name__ == '__main__':
+        unittest.main()

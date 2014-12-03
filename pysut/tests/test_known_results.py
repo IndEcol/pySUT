@@ -3,10 +3,11 @@
 Created on Mon Aug 11 16:19:39 2014
 
 @author: Stefan Pauliuk, NTNU
+Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 """
 
-from .. import SupplyUseTable
-from .. import pysut
+from .. import SupplyUseTable # remove and import the class manually if this unit test is run as standalone script
+from .. import pysut # remove and import the class manually if this unit test is run as standalone script
 import numpy as np
 import numpy.testing as npt
 import unittest
@@ -199,7 +200,7 @@ F_res = np.array([[5, 30, 7, 22.03, 18],
                   [0.04, 0.4, 0.8, 0.98, 1]])
 
 ###############################################################################
-"""Create Dynamic Stock Models and hand over the pre-defined values."""
+"""Create SUTs and hand over the pre-defined values."""
 # For fixed LT
 mySUT = SupplyUseTable(V=V_Test.copy(), U=U_Test.copy(), Y=Y_Test.copy(), F=F_Test.copy())
 
@@ -381,4 +382,6 @@ class KnownResultsTestCase(unittest.TestCase):
         np.testing.assert_array_almost_equal(A,A_ITC_cxc,8)
         np.testing.assert_array_almost_equal(S,S_ITC,9)
 
+    if __name__ == '__main__':
+        unittest.main()
 

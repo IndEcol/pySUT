@@ -5,6 +5,7 @@ Functions and classes for efficient handling of supply and use tables (SUTs)
 Created on Mon Jun 30 17:21:28 2014
 
 @author: stefan pauliuk, NTNU Trondheim, Norway
+Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 
 standard abbreviation: SUT
 
@@ -19,6 +20,8 @@ sys.path.append(Package_Path)
 import pysut
 from pysut import SupplyUseTable
 
+Repository for this class, documentation, and tutorials: https://github.com/stefanpauliuk/pySUT
+
 """
 
 import sys
@@ -27,7 +30,7 @@ import numpy as np
 from scipy import sparse as sp
 from scipy.sparse import linalg as sl
 
-# check for correct version number
+# check for correct version number of Python
 if sys.version_info.major < 3:
     logging.warning('This package requires Python 3.0 or higher.')
 
@@ -120,7 +123,7 @@ class SupplyUseTable(object):
         self.Gamma = Gamma
 
     def return_version_info(self):
-        return str('Class SUT. Version 0.1. Last change: September 24th, 2014.')
+        return str('Class SupplyUseTable. Version 1.0. Last change: December 3rd, 2014.')
 
     def dimension_check(self):
         """ This method checks which variables are present and checks whether data types and dimensions match
@@ -319,7 +322,6 @@ class SupplyUseTable(object):
             return ddiag(self.V)
         else:
             return self.V * self.E_bar
-        return V_bar
 
     @property
     def V_tild(self):
