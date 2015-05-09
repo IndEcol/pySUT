@@ -1,0 +1,593 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pysut.pysut</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong><a href="pysut.html"><font color="#ffffff">pysut</font></a>.pysut</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:///C:/anaconda3/lib/site-packages/pysut-1.1-py3.4.egg/pysut/pysut.py">c:\anaconda3\lib\site-packages\pysut-1.1-py3.4.egg\pysut\pysut.py</a></font></td></tr></table>
+    <p><tt>Class&nbsp;<a href="#SupplyUseTable">SupplyUseTable</a>.&nbsp;<br>
+Version&nbsp;1.1.&nbsp;Last&nbsp;change:&nbsp;May&nbsp;9th,&nbsp;2015.&nbsp;&nbsp;<br>
+Check&nbsp;https://github.com/stefanpauliuk/pySUT&nbsp;for&nbsp;latest&nbsp;version.<br>
+&nbsp;<br>
+Methods&nbsp;for&nbsp;efficient&nbsp;handling&nbsp;of&nbsp;supply&nbsp;and&nbsp;use&nbsp;tables&nbsp;(SUTs)<br>
+&nbsp;<br>
+Created&nbsp;on&nbsp;Mon&nbsp;Jun&nbsp;30&nbsp;17:21:28&nbsp;2014<br>
+&nbsp;<br>
+@author:&nbsp;stefan&nbsp;pauliuk,&nbsp;NTNU&nbsp;Trondheim,&nbsp;Norway<br>
+Guillaume&nbsp;Majeau-Bettez,&nbsp;NTNU&nbsp;Trondheim,&nbsp;Norway<br>
+&nbsp;<br>
+standard&nbsp;abbreviation:&nbsp;SUT<br>
+&nbsp;<br>
+dependencies:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;numpy<br>
+&nbsp;&nbsp;&nbsp;&nbsp;scipy<br>
+&nbsp;<br>
+&nbsp;<br>
+Repository&nbsp;for&nbsp;this&nbsp;class,&nbsp;documentation,&nbsp;and&nbsp;tutorials:&nbsp;https://github.com/stefanpauliuk/pySUT</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="logging.html">logging</a><br>
+<a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="scipy.sparse.linalg.html">scipy.sparse.linalg</a><br>
+<a href="scipy.sparse.html">scipy.sparse</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="pysut.pysut.html#SupplyUseTable">SupplyUseTable</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="SupplyUseTable">class <strong>SupplyUseTable</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Class&nbsp;containing&nbsp;a&nbsp;complete&nbsp;supply&nbsp;and&nbsp;use&nbsp;table<br>
+&nbsp;<br>
+Attributes<br>
+----------<br>
+V&nbsp;:&nbsp;product&nbsp;by&nbsp;industry&nbsp;supply&nbsp;table<br>
+U&nbsp;:&nbsp;product&nbsp;by&nbsp;industry&nbsp;use&nbsp;table<br>
+Y&nbsp;:&nbsp;final&nbsp;demand&nbsp;product&nbsp;by&nbsp;end-use&nbsp;category<br>
+F&nbsp;:&nbsp;Extensions:&nbsp;type&nbsp;by&nbsp;industry<br>
+FY:&nbsp;Extensions:&nbsp;type&nbsp;by&nbsp;end-use&nbsp;category<br>
+TL:&nbsp;Trade&nbsp;link&nbsp;(for&nbsp;MRIO&nbsp;models)<br>
+l_pro:&nbsp;Labels&nbsp;of&nbsp;products<br>
+l_ind:&nbsp;Labels&nbsp;of&nbsp;industries<br>
+l_ext:&nbsp;Labels&nbsp;of&nbsp;extensions<br>
+&nbsp;<br>
+&nbsp;<br>
+unit&nbsp;:&nbsp;Unit&nbsp;for&nbsp;each&nbsp;row&nbsp;of&nbsp;V,U,&nbsp;and&nbsp;y&nbsp;(product&nbsp;unit)<br>
+version&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;can&nbsp;be&nbsp;used&nbsp;as&nbsp;a&nbsp;version&nbsp;tracking&nbsp;system.<br>
+year&nbsp;:&nbsp;string&nbsp;or&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Baseyear&nbsp;of&nbsp;the&nbsp;IOSystem<br>
+name&nbsp;:&nbsp;string,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;SUT,&nbsp;default&nbsp;is&nbsp;'SUT'<br>
+regions:&nbsp;Number&nbsp;of&nbsp;regions,&nbsp;for&nbsp;multiregional&nbsp;SUT<br>
+&nbsp;<br>
+E_bar&nbsp;:&nbsp;Mapping&nbsp;of&nbsp;primary&nbsp;production<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;product-by-industry&nbsp;matrix&nbsp;of&nbsp;0&nbsp;or&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;coefficient&nbsp;1&nbsp;to&nbsp;indicate&nbsp;primary&nbsp;product&nbsp;and&nbsp;0&nbsp;otherwise<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;can&nbsp;be&nbsp;automatically&nbsp;generated&nbsp;by&nbsp;self.<strong>build_E_bar</strong>&nbsp;for&nbsp;simple&nbsp;cases<br>
+&nbsp;<br>
+Xi&nbsp;:&nbsp;Matrix&nbsp;of&nbsp;substitutability&nbsp;between&nbsp;products<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;[product-by-product&nbsp;dimensions]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Xi[2,1]&nbsp;=&nbsp;0.5&nbsp;means&nbsp;that&nbsp;every&nbsp;secondary&nbsp;production&nbsp;of&nbsp;product&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;displaces&nbsp;(pushes&nbsp;out)&nbsp;0.5&nbsp;units&nbsp;of&nbsp;product&nbsp;2.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Can&nbsp;be&nbsp;automatically&nbsp;generated&nbsp;by&nbsp;self.<strong>build_mr_Xi</strong>&nbsp;for&nbsp;simple,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;multi-regional&nbsp;cases<br>
+&nbsp;<br>
+PHI&nbsp;:&nbsp;Partition&nbsp;coefficients&nbsp;for&nbsp;partition&nbsp;allocation&nbsp;or&nbsp;constructs<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;industry-by-product&nbsp;dimensions,&nbsp;with&nbsp;rows&nbsp;adding&nbsp;up&nbsp;to&nbsp;1.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;PHI[2,1]&nbsp;=&nbsp;0.3&nbsp;means&nbsp;that&nbsp;the&nbsp;total&nbsp;supply&nbsp;of&nbsp;product&nbsp;1&nbsp;will&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attributed&nbsp;30%&nbsp;of&nbsp;requirements/emissions&nbsp;of&nbsp;industry&nbsp;2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Can&nbsp;be&nbsp;generated&nbsp;on&nbsp;the&nbsp;fly&nbsp;based&nbsp;on&nbsp;self.<strong>PSI</strong><br>
+&nbsp;<br>
+PSI:&nbsp;Matrix&nbsp;of&nbsp;intensive&nbsp;properties&nbsp;of&nbsp;products&nbsp;to&nbsp;guide&nbsp;partition<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allocation&nbsp;within&nbsp;each&nbsp;industry.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;[product-by-industry&nbsp;dimensions]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;If&nbsp;PSI[:,&nbsp;2]&nbsp;contains&nbsp;energy&nbsp;densities,&nbsp;industry&nbsp;2&nbsp;will&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;partitioned&nbsp;based&nbsp;on&nbsp;the&nbsp;energy&nbsp;content&nbsp;of&nbsp;its&nbsp;supplies<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Used&nbsp;in&nbsp;the&nbsp;calculation&nbsp;of&nbsp;partition&nbsp;coefficients&nbsp;PHI<br>
+&nbsp;<br>
+Gamma:&nbsp;Matrix&nbsp;of&nbsp;alternate&nbsp;activities<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;[industry-by-product&nbsp;dimensions]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Gamma[2,&nbsp;1]&nbsp;=&nbsp;1&nbsp;means&nbsp;that&nbsp;the&nbsp;technology&nbsp;of&nbsp;the&nbsp;primary&nbsp;product&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;industry&nbsp;2&nbsp;will&nbsp;be&nbsp;assumed&nbsp;for&nbsp;all&nbsp;secondary&nbsp;productions&nbsp;of&nbsp;product&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Can&nbsp;be&nbsp;automatically&nbsp;generated&nbsp;by&nbsp;self.<strong>build_mr_Gamma</strong>&nbsp;for&nbsp;simple,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;multi-regional&nbsp;cases<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="SupplyUseTable-Build_BTC_A_matrix"><strong>Build_BTC_A_matrix</strong></a>(self, Xi=None)</dt><dd><tt>Builds&nbsp;the&nbsp;A-matrix&nbsp;of&nbsp;the&nbsp;normal&nbsp;BTC&nbsp;construct,&nbsp;using&nbsp;Xi&nbsp;as&nbsp;mapping&nbsp;matrix<br>
+returns:&nbsp;A&nbsp;matrix&nbsp;for&nbsp;BTC&nbsp;construct<br>
+A_BTC&nbsp;=&nbsp;(U&nbsp;-&nbsp;Xi&nbsp;*&nbsp;V_offdiag)V_diag_inv</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_BTC_Ab_matrix"><strong>Build_BTC_Ab_matrix</strong></a>(self)</dt><dd><tt>returns&nbsp;use&nbsp;part&nbsp;of&nbsp;BTC&nbsp;construct:&nbsp;Ab&nbsp;=&nbsp;VoffdiagV^-1.&nbsp;Used&nbsp;to&nbsp;re-construct&nbsp;the&nbsp;SUT&nbsp;from&nbsp;the&nbsp;BTC-IO&nbsp;model</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_BTC_Am_matrix"><strong>Build_BTC_Am_matrix</strong></a>(self)</dt><dd><tt>returns&nbsp;use&nbsp;part&nbsp;of&nbsp;BTC&nbsp;construct:&nbsp;Am&nbsp;=&nbsp;UV^-1.&nbsp;Used&nbsp;to&nbsp;re-construct&nbsp;the&nbsp;SUT&nbsp;from&nbsp;the&nbsp;BTC-IO&nbsp;model</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_BTC_S"><strong>Build_BTC_S</strong></a>(self)</dt><dd><tt>Returns&nbsp;stressor&nbsp;coefficient&nbsp;matrix&nbsp;for&nbsp;the&nbsp;BTC&nbsp;construct.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_CTC_A_matrix_cxc"><strong>Build_CTC_A_matrix_cxc</strong></a>(self)</dt><dd><tt>Builds&nbsp;the&nbsp;A-matrix&nbsp;of&nbsp;the&nbsp;CTC&nbsp;construct,&nbsp;commodity-by-commodity<br>
+return:&nbsp;A&nbsp;matrix&nbsp;for&nbsp;CTC&nbsp;construct<br>
+Equation&nbsp;taken&nbsp;from&nbsp;Miller&nbsp;and&nbsp;Blair&nbsp;(2009),&nbsp;chapter&nbsp;5,&nbsp;Equation&nbsp;5.26<br>
+A_CTC_cxc&nbsp;=&nbsp;U&nbsp;*&nbsp;V^-1</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_CTC_A_matrix_ixi"><strong>Build_CTC_A_matrix_ixi</strong></a>(self)</dt><dd><tt>Builds&nbsp;the&nbsp;A-matrix&nbsp;of&nbsp;the&nbsp;CTC&nbsp;construct,&nbsp;industry-by-industry<br>
+return:&nbsp;A&nbsp;matrix&nbsp;for&nbsp;CTC&nbsp;construct<br>
+Equation&nbsp;taken&nbsp;from&nbsp;Miller&nbsp;and&nbsp;Blair&nbsp;(2009),&nbsp;chapter&nbsp;5,&nbsp;Equation&nbsp;5.26a<br>
+A_CTC_ixi&nbsp;=&nbsp;g^&nbsp;*&nbsp;V^-1&nbsp;*&nbsp;U&nbsp;*&nbsp;g^-1</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_CTC_cxc_S"><strong>Build_CTC_cxc_S</strong></a>(self)</dt><dd><tt>Returns&nbsp;stressor&nbsp;coefficient&nbsp;matrix&nbsp;for&nbsp;the&nbsp;CTC&nbsp;cxc&nbsp;construct.&nbsp;S&nbsp;=&nbsp;F&nbsp;V^-1</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_ITC_A_matrix_cxc"><strong>Build_ITC_A_matrix_cxc</strong></a>(self)</dt><dd><tt>Builds&nbsp;the&nbsp;A-matrix&nbsp;of&nbsp;the&nbsp;ITC&nbsp;construct,&nbsp;commodity-by-commodity<br>
+return:&nbsp;A&nbsp;matrix&nbsp;for&nbsp;ITC&nbsp;construct<br>
+Equation&nbsp;taken&nbsp;from&nbsp;Miller&nbsp;and&nbsp;Blair&nbsp;(2009),&nbsp;chapter&nbsp;5,&nbsp;Equation&nbsp;5.27<br>
+A_ITC_cxc&nbsp;=&nbsp;U&nbsp;*&nbsp;g^-1&nbsp;&nbsp;*&nbsp;&nbsp;V'*q^-1</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_ITC_A_matrix_ixi"><strong>Build_ITC_A_matrix_ixi</strong></a>(self)</dt><dd><tt>Builds&nbsp;the&nbsp;A-matrix&nbsp;of&nbsp;the&nbsp;ITC&nbsp;construct,&nbsp;industry-by-industry<br>
+return:&nbsp;A&nbsp;matrix&nbsp;for&nbsp;ITC&nbsp;construct<br>
+Equation&nbsp;taken&nbsp;from&nbsp;Miller&nbsp;and&nbsp;Blair&nbsp;(2009),&nbsp;chapter&nbsp;5,&nbsp;Equation&nbsp;5.27a<br>
+A_ITC_ixi&nbsp;=&nbsp;V'*q^-1&nbsp;&nbsp;*&nbsp;&nbsp;U&nbsp;*&nbsp;g^-1</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-Build_ITC_cxc_S"><strong>Build_ITC_cxc_S</strong></a>(self)</dt><dd><tt>Returns&nbsp;stressor&nbsp;coefficient&nbsp;matrix&nbsp;for&nbsp;the&nbsp;ITC&nbsp;cxc&nbsp;construct.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-__init__"><strong>__init__</strong></a>(self, V=None, U=None, Y=None, F=None, FY=None, TL=None, unit=None, version=None, year=None, name='SUT', regions=1, E_bar=None, Xi=None, PHI=None, PSI=None, Gamma=None)</dt><dd><tt>Basic&nbsp;initialisation&nbsp;and&nbsp;dimension&nbsp;check&nbsp;methods</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-aac_agg"><strong>aac_agg</strong></a>(self, nmax=inf, res_tol=0, keep_size=True, return_flows=True)</dt><dd><tt>Alternative&nbsp;Activity&nbsp;aggregation&nbsp;Construct&nbsp;of&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Args<br>
+----<br>
+nmax&nbsp;:&nbsp;maximum&nbsp;number&nbsp;of&nbsp;iterative&nbsp;loops&nbsp;for&nbsp;defining&nbsp;A_gamma<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(default=Inf)<br>
+res_tol:&nbsp;maximum&nbsp;residual&nbsp;acceptable&nbsp;in&nbsp;defining&nbsp;A_gamma&nbsp;(default&nbsp;0)<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>E_bar</strong>&nbsp;:&nbsp;0&nbsp;or&nbsp;1&nbsp;mapping&nbsp;of&nbsp;primary&nbsp;commodities&nbsp;to&nbsp;industries<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[com,ind]<br>
+Gamma&nbsp;:&nbsp;mapping&nbsp;of&nbsp;alternate&nbsp;activity&nbsp;for&nbsp;each&nbsp;commodity<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ind,com]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-add_ones_to_diagonal"><strong>add_ones_to_diagonal</strong></a>(self)</dt><dd><tt>This&nbsp;method&nbsp;adds&nbsp;ones&nbsp;where&nbsp;there&nbsp;is&nbsp;a&nbsp;zero&nbsp;on&nbsp;the&nbsp;diagonal&nbsp;of&nbsp;V.&nbsp;This&nbsp;is&nbsp;needed&nbsp;for&nbsp;simple&nbsp;applications&nbsp;of&nbsp;the&nbsp;BTC.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-aggregate_rearrange_products"><strong>aggregate_rearrange_products</strong></a>(self, PA, PR)</dt><dd><tt>multiplies&nbsp;an&nbsp;aggregation&nbsp;matrix&nbsp;PA&nbsp;from&nbsp;the&nbsp;left&nbsp;to&nbsp;V,&nbsp;U,&nbsp;and&nbsp;Y,&nbsp;rearranges&nbsp;the&nbsp;rows&nbsp;in&nbsp;columns&nbsp;of&nbsp;V,&nbsp;U,&nbsp;and&nbsp;Y&nbsp;according&nbsp;to&nbsp;the&nbsp;sorting&nbsp;matrix&nbsp;PR<br>
+Equations:&nbsp;X_aggregated&nbsp;=&nbsp;PA&nbsp;*&nbsp;X,&nbsp;where&nbsp;X&nbsp;=&nbsp;U,&nbsp;V,&nbsp;or&nbsp;Y&nbsp;(and&nbsp;also&nbsp;TL)<br>
+X_new&nbsp;=&nbsp;PR&nbsp;*&nbsp;X_aggregated&nbsp;*&nbsp;PR',&nbsp;where&nbsp;X&nbsp;=&nbsp;U,&nbsp;V<br>
+Y_new&nbsp;=&nbsp;PR&nbsp;*&nbsp;Y_aggregated&nbsp;(and&nbsp;also&nbsp;TL)</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-aggregate_regions"><strong>aggregate_regions</strong></a>(self, AV)</dt><dd><tt>This&nbsp;method&nbsp;aggregates&nbsp;the&nbsp;supply&nbsp;and&nbsp;use&nbsp;table.&nbsp;The&nbsp;length&nbsp;of&nbsp;the&nbsp;vector&nbsp;AV&nbsp;sais&nbsp;how&nbsp;many&nbsp;regions&nbsp;there&nbsp;are&nbsp;in&nbsp;the&nbsp;model.&nbsp;The&nbsp;total&nbsp;number&nbsp;of&nbsp;products&nbsp;and&nbsp;industries&nbsp;must&nbsp;be&nbsp;a&nbsp;multiple&nbsp;of&nbsp;that&nbsp;number,&nbsp;else,&nbsp;an&nbsp;error&nbsp;is&nbsp;given.<br>
+Then,&nbsp;the&nbsp;SUT&nbsp;is&nbsp;summed&nbsp;up&nbsp;according&nbsp;to&nbsp;the&nbsp;positions&nbsp;in&nbsp;AV.&nbsp;if&nbsp;AV[n]&nbsp;==&nbsp;x,&nbsp;then&nbsp;region&nbsp;n&nbsp;in&nbsp;the&nbsp;big&nbsp;SUT&nbsp;is&nbsp;aggregated&nbsp;into&nbsp;region&nbsp;x<br>
+OBS:&nbsp;This&nbsp;method&nbsp;required&nbsp;the&nbsp;presence&nbsp;of&nbsp;U,&nbsp;V,&nbsp;Y,&nbsp;F,&nbsp;and&nbsp;FY.&nbsp;Only&nbsp;TL&nbsp;is&nbsp;optional.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-btc"><strong>btc</strong></a>(self, keep_size=True, return_flows=True)</dt><dd><tt>Performs&nbsp;Byproduct&nbsp;Technology&nbsp;Construct&nbsp;of&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Args<br>
+----<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>E_bar</strong>&nbsp;:&nbsp;0&nbsp;or&nbsp;1&nbsp;mapping&nbsp;of&nbsp;primary&nbsp;commodities&nbsp;to&nbsp;industries<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[com,ind]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-build_Aggregation_Matrix"><strong>build_Aggregation_Matrix</strong></a>(self, Position_Vector)</dt><dd><tt>Turn&nbsp;a&nbsp;vector&nbsp;of&nbsp;target&nbsp;positions&nbsp;into&nbsp;a&nbsp;matrix&nbsp;that&nbsp;aggregates&nbsp;<br>
+or&nbsp;re-arranges&nbsp;rows&nbsp;of&nbsp;the&nbsp;table&nbsp;it&nbsp;is&nbsp;multiplied&nbsp;to&nbsp;from&nbsp;the&nbsp;left&nbsp;<br>
+(or&nbsp;columns,&nbsp;if&nbsp;multiplied&nbsp;transposed&nbsp;from&nbsp;the&nbsp;right)</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-build_E_bar"><strong>build_E_bar</strong></a>(self, prefer_exclusive=True, prefer_diag=True)</dt><dd><tt>Determine&nbsp;E_bar&nbsp;based&nbsp;on&nbsp;V,&nbsp;indentifying&nbsp;each&nbsp;primary&nbsp;supply&nbsp;flow<br>
+&nbsp;<br>
+Makes&nbsp;a&nbsp;best&nbsp;guess&nbsp;at&nbsp;the&nbsp;primary&nbsp;production&nbsp;flow&nbsp;of&nbsp;each&nbsp;industry.&nbsp;If<br>
+a&nbsp;supply&nbsp;flow&nbsp;is&nbsp;found&nbsp;on&nbsp;the&nbsp;diagonal&nbsp;of&nbsp;the&nbsp;supply&nbsp;matrix&nbsp;(V)&nbsp;pick<br>
+this&nbsp;one.&nbsp;&nbsp;Otherwise,&nbsp;by&nbsp;default,&nbsp;give&nbsp;the&nbsp;preference&nbsp;to&nbsp;any&nbsp;product<br>
+that&nbsp;is&nbsp;exclusive&nbsp;to&nbsp;this&nbsp;industry,&nbsp;i.e.&nbsp;a&nbsp;product&nbsp;that&nbsp;is&nbsp;not&nbsp;produced<br>
+by&nbsp;any&nbsp;other&nbsp;industry.&nbsp;&nbsp;For&nbsp;all&nbsp;the&nbsp;rest,&nbsp;pick&nbsp;the&nbsp;biggest&nbsp;supply&nbsp;flows<br>
+of&nbsp;each&nbsp;industry.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+&nbsp;<br>
+prefer_diag:&nbsp;If&nbsp;the&nbsp;supply&nbsp;table&nbsp;is&nbsp;square,&nbsp;any&nbsp;value&nbsp;on&nbsp;the&nbsp;diagonal<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;taken&nbsp;to&nbsp;be&nbsp;primary&nbsp;production.&nbsp;Otherwise,&nbsp;pick&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;largest&nbsp;supply&nbsp;flow.<br>
+&nbsp;<br>
+prefer_exclusive:&nbsp;Default&nbsp;True.&nbsp;When&nbsp;determining&nbsp;between&nbsp;off-diagonal<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entries,&nbsp;give&nbsp;preference&nbsp;to&nbsp;a&nbsp;product&nbsp;that&nbsp;is&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;produced&nbsp;by&nbsp;any&nbsp;other&nbsp;industry&nbsp;over&nbsp;a&nbsp;larger&nbsp;supply<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flow.<br>
+&nbsp;<br>
+In&nbsp;other&nbsp;words,&nbsp;prefer_diag&nbsp;has&nbsp;precedence&nbsp;over&nbsp;prefer_exclusive,&nbsp;which<br>
+has&nbsp;precedence&nbsp;over&nbsp;the&nbsp;general&nbsp;rule&nbsp;of&nbsp;the&nbsp;primary&nbsp;production&nbsp;being<br>
+the&nbsp;largest&nbsp;production.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-build_mr_Gamma"><strong>build_mr_Gamma</strong></a>(self, exclude_minority_prod=True)</dt><dd><tt>Autogenerate&nbsp;alternate&nbsp;activity&nbsp;matrix&nbsp;for&nbsp;multi-regional&nbsp;SUT</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-build_mr_Xi"><strong>build_mr_Xi</strong></a>(self)</dt><dd><tt>Define&nbsp;Product&nbsp;substitutability&nbsp;matrix&nbsp;for&nbsp;multiregional&nbsp;system<br>
+&nbsp;<br>
+By&nbsp;default,&nbsp;products&nbsp;displace&nbsp;identical&nbsp;products&nbsp;produced&nbsp;in&nbsp;the&nbsp;same<br>
+region.&nbsp;If&nbsp;all&nbsp;products&nbsp;were&nbsp;produced&nbsp;as&nbsp;primary&nbsp;product&nbsp;in&nbsp;all<br>
+regions,&nbsp;the&nbsp;Xi&nbsp;matrix&nbsp;would&nbsp;be&nbsp;an&nbsp;identity&nbsp;matrix.<br>
+&nbsp;<br>
+Otherwise,&nbsp;if&nbsp;a&nbsp;product&nbsp;is&nbsp;only&nbsp;produced&nbsp;as&nbsp;a&nbsp;secondary&nbsp;product&nbsp;in&nbsp;a<br>
+region,&nbsp;make&nbsp;this&nbsp;product&nbsp;substitute&nbsp;average&nbsp;primary&nbsp;production&nbsp;mix.<br>
+&nbsp;<br>
+Dependencies<br>
+------------<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>E_bar</strong>&nbsp;to&nbsp;indicate&nbsp;primary&nbsp;production<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>Xi</strong>:&nbsp;a&nbsp;product*regions-by-product*region,&nbsp;square&nbsp;matrix</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-clear_non_diag_supply"><strong>clear_non_diag_supply</strong></a>(self)</dt><dd><tt>This&nbsp;method&nbsp;allows&nbsp;for&nbsp;simple&nbsp;application&nbsp;of&nbsp;the&nbsp;BTC.&nbsp;It&nbsp;removes&nbsp;all&nbsp;sectors&nbsp;that&nbsp;do&nbsp;not&nbsp;produce&nbsp;their&nbsp;respective&nbsp;main&nbsp;product.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-compare_IndustrialUseAndSupply"><strong>compare_IndustrialUseAndSupply</strong></a>(self)</dt><dd><tt>This&nbsp;method&nbsp;computes&nbsp;total&nbsp;industrial&nbsp;supply&nbsp;and&nbsp;total&nbsp;industrial&nbsp;use,&nbsp;and&nbsp;compares&nbsp;the&nbsp;two<br>
+ResultVector&nbsp;=&nbsp;U.e&nbsp;*/&nbsp;V.e</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-ctc"><strong>ctc</strong></a>(self, return_flows=True)</dt><dd><tt>Performs&nbsp;Commodity&nbsp;Technology&nbsp;Construct&nbsp;of&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Args<br>
+----<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-dimension_check"><strong>dimension_check</strong></a>(self)</dt><dd><tt>This&nbsp;method&nbsp;checks&nbsp;which&nbsp;variables&nbsp;are&nbsp;present&nbsp;and&nbsp;checks&nbsp;whether&nbsp;data&nbsp;types&nbsp;and&nbsp;dimensions&nbsp;match</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-esc"><strong>esc</strong></a>(self, keep_size=True, return_flows=True)</dt><dd><tt>Performs&nbsp;European&nbsp;System&nbsp;Construct&nbsp;on&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Args<br>
+----<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>E_bar</strong>:&nbsp;&nbsp;0&nbsp;or&nbsp;1&nbsp;mapping&nbsp;of&nbsp;primary&nbsp;production&nbsp;[com,ind]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;absent&nbsp;and&nbsp;system&nbsp;square,&nbsp;assume&nbsp;identity&nbsp;matrix)<br>
+selfself..G&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in:&nbsp;&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+Z:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+F_con:&nbsp;&nbsp;Unnormalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,com]</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-g_V"><strong>g_V</strong></a>(self)</dt><dd><tt>Compute&nbsp;total&nbsp;industrial&nbsp;output&nbsp;g&nbsp;from&nbsp;supply&nbsp;table&nbsp;V.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-itc"><strong>itc</strong></a>(self, keep_size=True, return_flows=True)</dt><dd><tt>Performs&nbsp;Industry&nbsp;Technology&nbsp;Construct&nbsp;of&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Args<br>
+----<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-lsc"><strong>lsc</strong></a>(self, keep_size=True, return_flows=False)</dt><dd><tt>Performs&nbsp;Lump-sum&nbsp;aggregation&nbsp;Construct&nbsp;of&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Args<br>
+----<br>
+&nbsp;<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+return_flows:&nbsp;Return&nbsp;unnormalized&nbsp;flows&nbsp;in&nbsp;addition&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalized&nbsp;coefficients.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+&nbsp;<br>
+If&nbsp;return_flows&nbsp;is&nbsp;True&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>E_bar</strong>&nbsp;:&nbsp;0&nbsp;or&nbsp;1&nbsp;mapping&nbsp;of&nbsp;primary&nbsp;commodities&nbsp;to&nbsp;industries<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[com,ind]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-market_balance"><strong>market_balance</strong></a>(self)</dt><dd><tt>Returns&nbsp;the&nbsp;market&nbsp;balance&nbsp;of&nbsp;the&nbsp;SUT.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-pc_agg"><strong>pc_agg</strong></a>(self, keep_size=True, return_flows=True)</dt><dd><tt>Performs&nbsp;Partition&nbsp;Aggregation&nbsp;Construct&nbsp;of&nbsp;SuUT&nbsp;inventory<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN&nbsp;because&nbsp;product&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;produced&nbsp;and&nbsp;not&nbsp;consumed<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>PHI</strong>&nbsp;:&nbsp;&nbsp;Partition&nbsp;coefficient&nbsp;[ind,&nbsp;com]&nbsp;(default=np.empty(0))<br>
+OR<br>
+self.<strong>PSI</strong>&nbsp;:&nbsp;&nbsp;Properties&nbsp;table&nbsp;[com,&nbsp;properties]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-primary_market_shares_of_regions"><strong>primary_market_shares_of_regions</strong></a>(self)</dt><dd><tt>Calculate&nbsp;a&nbsp;region's&nbsp;share&nbsp;in&nbsp;each&nbsp;product's&nbsp;global&nbsp;primary&nbsp;supply<br>
+&nbsp;<br>
+For&nbsp;each&nbsp;<a href="builtins.html#object">object</a>&nbsp;type,&nbsp;calculate&nbsp;the&nbsp;fraction&nbsp;that&nbsp;each&nbsp;region<br>
+represents&nbsp;in&nbsp;its&nbsp;primary&nbsp;supply&nbsp;(secondary&nbsp;supply,&nbsp;as&nbsp;defined&nbsp;by<br>
+E_tild,&nbsp;is&nbsp;excluded)<br>
+&nbsp;<br>
+Dependencies:<br>
+-------------<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>V</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>E_bar</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>regions</strong><br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+&nbsp;&nbsp;&nbsp;&nbsp;D:&nbsp;region-per-product_type&nbsp;matrix,&nbsp;with&nbsp;market&nbsp;share&nbsp;coefficients<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;Each&nbsp;column&nbsp;must&nbsp;add&nbsp;up&nbsp;to&nbsp;1&nbsp;(or&nbsp;zero&nbsp;if&nbsp;no&nbsp;production)</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-psc_agg"><strong>psc_agg</strong></a>(self, keep_size=True, return_flows=False)</dt><dd><tt>Performs&nbsp;Product&nbsp;Substitution&nbsp;aggregation&nbsp;Construct<br>
+&nbsp;<br>
+Args<br>
+----<br>
+keep_size:&nbsp;by&nbsp;default,&nbsp;keep&nbsp;all&nbsp;rows&nbsp;and&nbsp;columns&nbsp;in&nbsp;normalized&nbsp;A-matrix<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even&nbsp;if&nbsp;some&nbsp;rows/columns&nbsp;should&nbsp;be&nbsp;NaN<br>
+&nbsp;<br>
+return_flows:&nbsp;Return&nbsp;unnormalized&nbsp;flows&nbsp;in&nbsp;addition&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalized&nbsp;coefficients.<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;requirements&nbsp;[com,com]<br>
+A_main&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;input&nbsp;requirements&nbsp;[com,&nbsp;com]<br>
+A_byprod&nbsp;:&nbsp;Normalized&nbsp;technical&nbsp;byproduct&nbsp;generation&nbsp;[com,&nbsp;com]<br>
+A&nbsp;=&nbsp;A_main&nbsp;-&nbsp;A_byprod,&nbsp;where&nbsp;all&nbsp;elements&nbsp;in&nbsp;A_main&nbsp;and&nbsp;A_byprod&nbsp;are&nbsp;always&nbsp;nonnegative<br>
+S&nbsp;:&nbsp;Normalized,&nbsp;constructed&nbsp;emissions&nbsp;[ext,&nbsp;com]<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;rows&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;to&nbsp;remove&nbsp;np.empty&nbsp;columns&nbsp;in&nbsp;A&nbsp;or&nbsp;Z&nbsp;[com]<br>
+&nbsp;<br>
+If&nbsp;return_flows&nbsp;is&nbsp;True&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Z&nbsp;:&nbsp;constructed&nbsp;intermediate&nbsp;flow&nbsp;matrix&nbsp;[com,com]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;F_con&nbsp;:&nbsp;Constructed&nbsp;emissions&nbsp;[ext,com]<br>
+&nbsp;<br>
+Depends&nbsp;on<br>
+----------<br>
+self.<strong>U</strong>:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>V</strong>:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Supply&nbsp;table&nbsp;[com,&nbsp;ind]<br>
+self.<strong>E_bar</strong>:&nbsp;0&nbsp;or&nbsp;1&nbsp;mapping&nbsp;of&nbsp;primary&nbsp;commodities&nbsp;to&nbsp;industries<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[com,ind]<br>
+self.<strong>Xi</strong>&nbsp;:&nbsp;&nbsp;&nbsp;substitution&nbsp;table&nbsp;[com,com]<br>
+self.<strong>F</strong>&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;Unallocated&nbsp;emissions&nbsp;[ext,&nbsp;ind]&nbsp;(default=np.empty(0))</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-q_V"><strong>q_V</strong></a>(self)</dt><dd><tt>Compute&nbsp;total&nbsp;product&nbsp;output&nbsp;g&nbsp;from&nbsp;supply&nbsp;table&nbsp;V.</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-remove_products_industries"><strong>remove_products_industries</strong></a>(self, RPV, RIV)</dt><dd><tt>This&nbsp;method&nbsp;sets&nbsp;the&nbsp;products&nbsp;with&nbsp;the&nbsp;indices&nbsp;in&nbsp;the&nbsp;remove-product-vector&nbsp;RPV&nbsp;to&nbsp;zero.<br>
+Likewise&nbsp;for&nbsp;the&nbsp;industries&nbsp;in&nbsp;the&nbsp;remove-industy-vector&nbsp;RIV</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-return_diag_V"><strong>return_diag_V</strong></a>(self)</dt><dd><tt>Returns&nbsp;the&nbsp;diagonal&nbsp;of&nbsp;the&nbsp;supply&nbsp;table&nbsp;in&nbsp;matrix&nbsp;form&nbsp;:&nbsp;V^</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-return_offdiag_V"><strong>return_offdiag_V</strong></a>(self)</dt><dd><tt>Returns&nbsp;the&nbsp;off-diagonal&nbsp;of&nbsp;the&nbsp;supply&nbsp;table&nbsp;in&nbsp;matrix&nbsp;form&nbsp;:&nbsp;V_offdiag</tt></dd></dl>
+
+<dl><dt><a name="SupplyUseTable-return_version_info"><strong>return_version_info</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="SupplyUseTable-supply_diag_check"><strong>supply_diag_check</strong></a>(self)</dt><dd><tt>to&nbsp;apply&nbsp;the&nbsp;BTC,&nbsp;we&nbsp;need&nbsp;to&nbsp;have&nbsp;a&nbsp;non-zero&nbsp;diagonal&nbsp;for&nbsp;each&nbsp;producing&nbsp;sector.<br>
+Determine&nbsp;which&nbsp;sectors&nbsp;produce:</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>V_bar</strong></dt>
+<dd><tt>Table&nbsp;of&nbsp;primary&nbsp;production,&nbsp;calculated&nbsp;from&nbsp;V&nbsp;and&nbsp;E_bar,&nbsp;as&nbsp;property</tt></dd>
+</dl>
+<dl><dt><strong>V_tild</strong></dt>
+<dd><tt>Table&nbsp;of&nbsp;secondary&nbsp;production,&nbsp;calculated&nbsp;from&nbsp;V,&nbsp;as&nbsp;property</tt></dd>
+</dl>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>g</strong></dt>
+<dd><tt>Vector&nbsp;of&nbsp;total&nbsp;industry&nbsp;output,&nbsp;calculate&nbsp;from&nbsp;V,&nbsp;as&nbsp;property</tt></dd>
+</dl>
+<dl><dt><strong>q</strong></dt>
+<dd><tt>Vector&nbsp;of&nbsp;total&nbsp;product&nbsp;output,&nbsp;calculate&nbsp;from&nbsp;V,&nbsp;as&nbsp;property</tt></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-aggregate_regions_vectorised"><strong>aggregate_regions_vectorised</strong></a>(X, AV=None, axis=None, regions=None)</dt><dd><tt>In&nbsp;an&nbsp;array&nbsp;X,&nbsp;aggregate&nbsp;regions,&nbsp;along&nbsp;either&nbsp;axis&nbsp;or&nbsp;both<br>
+&nbsp;<br>
+Args<br>
+----<br>
+&nbsp;<br>
+X:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Array&nbsp;to&nbsp;be&nbsp;aggregated.<br>
+AV:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Aggregation&nbsp;vector,&nbsp;specifying&nbsp;which&nbsp;region&nbsp;to&nbsp;aggregate&nbsp;with&nbsp;which<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;AV&nbsp;is&nbsp;None&nbsp;and&nbsp;regions&nbsp;is&nbsp;not,&nbsp;assume&nbsp;that&nbsp;all&nbsp;regions&nbsp;are<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;be&nbsp;aggregated&nbsp;as&nbsp;one.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AV[0]&nbsp;=&nbsp;5&nbsp;means&nbsp;that&nbsp;region&nbsp;1&nbsp;(index+1)&nbsp;should&nbsp;be&nbsp;aggregated<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with&nbsp;region&nbsp;5.<br>
+axis:&nbsp;&nbsp;&nbsp;axis&nbsp;[0&nbsp;or&nbsp;1]&nbsp;along&nbsp;which&nbsp;X&nbsp;should&nbsp;be&nbsp;aggregated.&nbsp;If&nbsp;None,&nbsp;aggregate<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;along&nbsp;both.<br>
+regions:&nbsp;Number&nbsp;of&nbsp;regions.&nbsp;Used&nbsp;to&nbsp;build&nbsp;an&nbsp;aggregation&nbsp;vector&nbsp;of&nbsp;ones&nbsp;if<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AV&nbsp;is&nbsp;None.<br>
+&nbsp;<br>
+Needless&nbsp;to&nbsp;say,&nbsp;the&nbsp;aggregated&nbsp;axis&nbsp;must&nbsp;be&nbsp;multiple&nbsp;of&nbsp;the&nbsp;number&nbsp;of<br>
+regions.<br>
+&nbsp;<br>
+Returns<br>
+------<br>
+X&nbsp;&nbsp;(aggregated)</tt></dd></dl>
+ <dl><dt><a name="-aggregate_within_regions"><strong>aggregate_within_regions</strong></a>(X, regions, axis=None)</dt><dd><tt>Aggregate&nbsp;the&nbsp;products&nbsp;or&nbsp;industries&nbsp;within&nbsp;each&nbsp;regions&nbsp;for&nbsp;mrSUT<br>
+&nbsp;<br>
+For&nbsp;multi-regional&nbsp;SUT,&nbsp;aggregate&nbsp;rows,&nbsp;columns&nbsp;or&nbsp;both&nbsp;such&nbsp;that<br>
+there&nbsp;remains&nbsp;only&nbsp;one&nbsp;entry&nbsp;per&nbsp;region&nbsp;along&nbsp;chosen&nbsp;axis.&nbsp;The&nbsp;number<br>
+of&nbsp;regions&nbsp;is&nbsp;specified&nbsp;by&nbsp;regions.<br>
+&nbsp;<br>
+Args<br>
+----<br>
+&nbsp;&nbsp;&nbsp;&nbsp;X:&nbsp;a&nbsp;numpy&nbsp;array&nbsp;of&nbsp;appropriate&nbsp;dimensions<br>
+&nbsp;&nbsp;&nbsp;&nbsp;regions:&nbsp;number&nbsp;of&nbsp;regions<br>
+&nbsp;&nbsp;&nbsp;&nbsp;axis:&nbsp;0&nbsp;to&nbsp;aggregate&nbsp;rows,&nbsp;1&nbsp;for&nbsp;columns,&nbsp;None&nbsp;for&nbsp;all.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+&nbsp;default:&nbsp;None<br>
+Returns<br>
+-------<br>
+&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;(aggregated)</tt></dd></dl>
+ <dl><dt><a name="-ddiag"><strong>ddiag</strong></a>(a, nozero=False)</dt><dd><tt>Robust&nbsp;diagonalization&nbsp;:&nbsp;always&nbsp;put&nbsp;selected&nbsp;diagonal&nbsp;on&nbsp;a&nbsp;diagonal!<br>
+&nbsp;<br>
+This&nbsp;small&nbsp;function&nbsp;aims&nbsp;at&nbsp;getting&nbsp;a&nbsp;behaviour&nbsp;closer&nbsp;to&nbsp;the<br>
+mathematical&nbsp;"hat",&nbsp;compared&nbsp;to&nbsp;what&nbsp;np.diag()&nbsp;can&nbsp;delivers.<br>
+&nbsp;<br>
+If&nbsp;applied&nbsp;to&nbsp;a&nbsp;vector&nbsp;or&nbsp;a&nbsp;2d-matrix&nbsp;with&nbsp;one&nbsp;dimension&nbsp;of&nbsp;size&nbsp;1,&nbsp;put<br>
+the&nbsp;coefficients&nbsp;on&nbsp;the&nbsp;diagonal&nbsp;of&nbsp;a&nbsp;matrix&nbsp;with&nbsp;off-diagonal&nbsp;elements<br>
+equal&nbsp;to&nbsp;zero.<br>
+&nbsp;<br>
+If&nbsp;applied&nbsp;to&nbsp;a&nbsp;2d-matrix&nbsp;(with&nbsp;all&nbsp;dimensions&nbsp;of&nbsp;size&nbsp;&gt;&nbsp;1),&nbsp;replace<br>
+all&nbsp;off-diagonal&nbsp;elements&nbsp;by&nbsp;zeros.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+a&nbsp;:&nbsp;numpy&nbsp;matrix&nbsp;or&nbsp;vector&nbsp;to&nbsp;be&nbsp;diagonalized<br>
+&nbsp;<br>
+Returns<br>
+--------<br>
+b&nbsp;:&nbsp;Diagonalized&nbsp;vector<br>
+&nbsp;<br>
+Raises:<br>
+&nbsp;&nbsp;&nbsp;ValueError&nbsp;if&nbsp;a&nbsp;is&nbsp;more&nbsp;than&nbsp;2dimensional<br>
+&nbsp;<br>
+See&nbsp;Also<br>
+--------<br>
+&nbsp;&nbsp;&nbsp;&nbsp;diag</tt></dd></dl>
+ <dl><dt><a name="-matrix_norm"><strong>matrix_norm</strong></a>(Z, V, F_con=array([], dtype=float64), keep_size=False, just_filters=False)</dt><dd><tt>Normalizes&nbsp;a&nbsp;flow&nbsp;matrices,&nbsp;even&nbsp;if&nbsp;some&nbsp;rows&nbsp;and&nbsp;columns&nbsp;are&nbsp;null<br>
+&nbsp;<br>
+Processes&nbsp;product&nbsp;flows&nbsp;(Z)&nbsp;and&nbsp;environmental&nbsp;extensions&nbsp;(F_con).<br>
+&nbsp;<br>
+Normalizes&nbsp;columns&nbsp;of&nbsp;products&nbsp;that&nbsp;are&nbsp;indeed&nbsp;supplied&nbsp;(non-null&nbsp;supply),<br>
+as&nbsp;identified&nbsp;by&nbsp;nn_out.&nbsp;Remove&nbsp;all&nbsp;other&nbsp;columns.<br>
+&nbsp;<br>
+Keep&nbsp;only&nbsp;rows&nbsp;of&nbsp;products&nbsp;that&nbsp;are&nbsp;actually&nbsp;produced&nbsp;*OR*&nbsp;of&nbsp;products&nbsp;that<br>
+are&nbsp;consumed&nbsp;(in&nbsp;spite&nbsp;of&nbsp;not&nbsp;being&nbsp;produced...),&nbsp;as&nbsp;identified&nbsp;by&nbsp;nn_in.<br>
+Remove&nbsp;all&nbsp;other&nbsp;rows.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+Z&nbsp;:&nbsp;Flow&nbsp;matrix&nbsp;to&nbsp;be&nbsp;normalized<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dimensions&nbsp;:&nbsp;[com,&nbsp;com]&nbsp;|&nbsp;[com,&nbsp;ind,&nbsp;com]&nbsp;|&nbsp;[ind,com,ind,com]<br>
+V&nbsp;:&nbsp;Production&nbsp;volume&nbsp;with&nbsp;which&nbsp;flows&nbsp;are&nbsp;normalized<br>
+&nbsp;&nbsp;&nbsp;&nbsp;[com,&nbsp;ind]<br>
+&nbsp;<br>
+F_con:&nbsp;Allocated&nbsp;or&nbsp;construced&nbsp;but&nbsp;unnormalized&nbsp;environmental&nbsp;extensions<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[str,&nbsp;com]&nbsp;|&nbsp;[str,&nbsp;ind,&nbsp;com]<br>
+&nbsp;<br>
+keep_size:&nbsp;Do&nbsp;not&nbsp;remove&nbsp;empty&nbsp;rows&nbsp;and&nbsp;columns&nbsp;from&nbsp;A,&nbsp;leave&nbsp;with&nbsp;zeros<br>
+&nbsp;<br>
+just_filters:&nbsp;Don't&nbsp;normalize&nbsp;anything,&nbsp;just&nbsp;return&nbsp;nn_in&nbsp;and&nbsp;nn_out,&nbsp;leave<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rest&nbsp;empty<br>
+&nbsp;<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+A&nbsp;:&nbsp;Normalized&nbsp;flow&nbsp;matrix,&nbsp;without&nbsp;null/nan&nbsp;rows&nbsp;and&nbsp;nan&nbsp;columns<br>
+S&nbsp;:&nbsp;Normalized&nbsp;extensions,&nbsp;by&nbsp;default&nbsp;without&nbsp;nan&nbsp;columns<br>
+nn_in&nbsp;:&nbsp;filter&nbsp;applied&nbsp;to&nbsp;rows&nbsp;(0&nbsp;for&nbsp;removed&nbsp;rows,&nbsp;1&nbsp;for&nbsp;kept&nbsp;rows)<br>
+nn_out&nbsp;:&nbsp;filter&nbsp;applied&nbsp;to&nbsp;cols&nbsp;(0&nbsp;for&nbsp;removed&nbsp;cols,&nbsp;1&nbsp;for&nbsp;kept&nbsp;cols)</tt></dd></dl>
+ <dl><dt><a name="-restore_size"><strong>restore_size</strong></a>(X, nn_in=None, nn_out=None)</dt><dd><tt>Accepts&nbsp;an&nbsp;array&nbsp;and&nbsp;restores&nbsp;its&nbsp;size&nbsp;with&nbsp;empty&nbsp;rows&nbsp;and&nbsp;columns</tt></dd></dl>
+</td></tr></table>
+</body></html>

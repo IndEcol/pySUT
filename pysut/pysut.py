@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Functions and classes for efficient handling of supply and use tables (SUTs)
+Class SupplyUseTable. 
+Version 1.1. Last change: May 9th, 2015.  
+Check https://github.com/stefanpauliuk/pySUT for latest version.
+
+Methods for efficient handling of supply and use tables (SUTs)
 
 Created on Mon Jun 30 17:21:28 2014
 
@@ -13,12 +17,6 @@ dependencies:
     numpy
     scipy
 
-How to load this class:
-- add class folder to system path
-sys.path.append(Package_Path)
-
-import pysut
-from pysut import SupplyUseTable
 
 Repository for this class, documentation, and tutorials: https://github.com/stefanpauliuk/pySUT
 
@@ -59,6 +57,7 @@ class SupplyUseTable(object):
         Baseyear of the IOSystem
     name : string, optional
         Name of the SUT, default is 'SUT'
+    regions: Number of regions, for multiregional SUT
 
     E_bar : Mapping of primary production
         + product-by-industry matrix of 0 or 1
@@ -100,8 +99,8 @@ class SupplyUseTable(object):
                  E_bar=None, Xi=None, PHI=None, PSI=None, Gamma=None):
         """ Basic initialisation and dimension check methods """
 
-        self.V = V          # mandatory
-        self.U = U          # mandatory
+        self.V = V          # optional
+        self.U = U          # optional
         self.Y = Y          # optional
         self.F = F          # optional
         self.FY = FY        # optional
@@ -123,7 +122,7 @@ class SupplyUseTable(object):
         self.Gamma = Gamma
 
     def return_version_info(self):
-        return str('Class SupplyUseTable. Version 1.0. Last change: December 3rd, 2014.')
+        return str('Class SupplyUseTable. Version 1.1. Last change: May 9th, 2015.  Check https://github.com/stefanpauliuk/pySUT for latest version.')
 
     def dimension_check(self):
         """ This method checks which variables are present and checks whether data types and dimensions match
@@ -200,7 +199,7 @@ class SupplyUseTable(object):
             if SupplySum_p[m] != 0:
                 if SupplySum_i[m] != 0:
                     if SupplyDiag[m] != 0:
-                        SupplyDiag_Eval[m, 0] = 1  # Normal situation, OK
+                        SupplyDiag_Eval[m, 0] = 1  # Non-zero supply by main producer. Normal situation, OK
                     else:
                         SupplyDiag_Eval[m, 1] = 1  # No supply by apparent main producer, problem
                 else:
@@ -377,6 +376,16 @@ class SupplyUseTable(object):
     """
     Aggregation, removal, and re-arrangement methods
     """
+    def build_Aggregation_Matrix(self, Position_Vector): 
+        """Turn a vector of target positions into a matrix that aggregates 
+        or re-arranges rows of the table it is multiplied to from the left 
+        (or columns, if multiplied transposed from the right)"""
+        AM_length = Position_Vector.max() + 1 # Maximum row number of new matrix (+1 to get the right length)
+        AM_width  = len(Position_Vector) # Number of rows of the to-be-aggregated matrix
+        Rearrange_Matrix = np.zeros((AM_length,AM_width))
+        for m in range(0,len(Position_Vector)):
+            Rearrange_Matrix[Position_Vector[m].item(0),m] = 1 # place 1 in aggregation matrix at [PositionVector[m],m], so that column m is aggregated with Positionvector[m] in the aggregated matrix
+        return Rearrange_Matrix
 
     def aggregate_rearrange_products(self, PA, PR):
         """ multiplies an aggregation matrix PA from the left to V, U, and Y, rearranges the rows in columns of V, U, and Y according to the sorting matrix PR
@@ -612,14 +621,14 @@ class SupplyUseTable(object):
         q_bar = np.sum(Vagg, 1)
 
         # Normalize regional production relative to total world production
-        D = Vagg.T * _one_over(q_bar)
+        D = Vagg.T * _one_over(q_bar) # keep zero where there is a 0, not inf
 
         return D
 
     def build_mr_Xi(self):
-        """ Define Product subtitutability matrix for multiregional system
+        """ Define Product substitutability matrix for multiregional system
 
-        By default, products displace identica products produced in the same
+        By default, products displace identical products produced in the same
         region. If all products were produced as primary product in all
         regions, the Xi matrix would be an identity matrix.
 
@@ -724,12 +733,6 @@ class SupplyUseTable(object):
     """
     Constructs. Below, it is always assumed that U and V are present. For the industrial stressorts, F must be present as well.
     """
-
-    """ General: Determine L matrix"""
-
-    def Build_L_matrix(self, A):
-        logging.warning("Planned removal of Build_L_matrix from class definition.")
-        return np.linalg.inv(np.eye(self.V.shape[0]) - A)
 
     """ byproduct technology construct (BTC)"""
 
@@ -908,6 +911,9 @@ class SupplyUseTable(object):
         Returns
         --------
         A : Normalized technical requirements [com,com]
+        A_main : Normalized technical input requirements [com, com]
+        A_byprod : Normalized technical byproduct generation [com, com]
+        A = A_main - A_byprod, where all elements in A_main and A_byprod are always nonnegative
         S : Normalized, constructed emissions [ext, com]
         nn_in : filter to remove np.empty rows in A or Z [com]
         nn_out : filter to remove np.empty columns in A or Z [com]
@@ -932,16 +938,28 @@ class SupplyUseTable(object):
 
         # Construction of Product Flows  # <-- eq:PSCagg
         # ------------- sparse matrix start ---------------------
-        Z = ((self.__sU - self.__sXi * self.__sV_tild) * self.__sE_bar.T
-            ).toarray()
-        # ------------- sparse matrix end ---------------------
+        #        Z = ((self.__sU - self.__sXi * self.__sV_tild) * self.__sE_bar.T
+        #            ).toarray()
+            
+        Z_main = (self.__sU * self.__sE_bar.T
+            ).toarray()    
+            
+        Z_byprod = (self.__sXi * self.__sV_tild * self.__sE_bar.T
+            ).toarray()     
+            
+        # ------------- sparse matrix end ---------------------            
+            
+        Z = Z_main - Z_byprod    
+
 
         # Allocation of Environmental Extensions
         if self.F is not None:
             F_con = (self.__sF * self.__sE_bar.T).toarray()  #eq:NonProdBalEnvExt
 
         # Normalizing
-        (A, S, nn_in, nn_out) = matrix_norm(Z, self.V_bar, F_con, keep_size)
+        (A, S, nn_in, nn_out)        = matrix_norm(Z, self.V_bar, F_con, keep_size)
+        (A_main, S, nn_in, nn_out)   = matrix_norm(Z_main, self.V_bar, F_con, keep_size)
+        (A_byprod, S, nn_in, nn_out) = matrix_norm(Z_byprod, self.V_bar, F_con, keep_size)
 
         # Return allocated values
         if return_flows:
@@ -952,7 +970,7 @@ class SupplyUseTable(object):
             Z = np.empty(0)
             F_con = np.empty(0)
 
-        return (A, S, nn_in, nn_out, Z, F_con)
+        return (A, A_main, A_byprod, S, nn_in, nn_out, Z, F_con)
 
 
     def aac_agg(self, nmax=np.Inf, res_tol=0, keep_size=True, return_flows=True):

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pysut',
-    version="0.1",
+    version="1.1",
     packages=["pysut", "pysut.tests"],
     author="Stefan Pauliuk",
     description="Python class for efficient handling of supply and use tables (SUTs)",

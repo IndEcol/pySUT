@@ -11,8 +11,17 @@ with contributions from <br>
 Konstantin Stadler, NTNU, Trondheim, Norway<br>
 Chris Mutel, PSI, Villingen, CH <br>
 
-dependencies:
-    numpy
+Dependencies: <br>
+numpy<br>
+scipy<br>
+
+<br>
+<b>Tutorial:</b><br>
+http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb
+<b>Documenation of all methods and functions:</b><br>
+https://github.com/stefanpauliuk/pySUT/tree/master/Doc/pysut.html
+<br>
+<br>
 
 <b> Below, a quick installation guide and a link to the tutorial are provided:</b><br><br>
 
@@ -46,6 +55,4 @@ Pull package via git pull or download as .zip file and unpack. Choose a convenie
 
 > from pysut import SupplyUseTable
 
-<br><br>
-<b>Tutorial:</b><br>
-http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb
+

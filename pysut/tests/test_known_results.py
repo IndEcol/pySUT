@@ -382,6 +382,6 @@ class KnownResultsTestCase(unittest.TestCase):
         np.testing.assert_array_almost_equal(A,A_ITC_cxc,8)
         np.testing.assert_array_almost_equal(S,S_ITC,9)
 
-    if __name__ == '__main__':
-        unittest.main()
+#    if __name__ == '__main__':
+#        unittest.main()
 

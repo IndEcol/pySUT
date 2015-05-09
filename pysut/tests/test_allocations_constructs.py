@@ -72,6 +72,9 @@ class TestAllocationsConstructs(unittest.TestCase):
 
         # Untraceable use table
         self.Uu = np.array(sum(self.Ut, 0))
+        """array([[ 0.  ,  0.  ,  0.  ,  0.  ],
+                  [ 0.  ,  0.  ,  0.  ,  0.75],
+                  [ 4.  ,  0.75,  2.  ,  0.  ]])"""
 
 
         # Use of factors of production by industries
@@ -211,6 +214,19 @@ class TestAllocationsConstructs(unittest.TestCase):
                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0.9],
                       [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
                       [ 0.1,  0. ,  0. ,  0. ,  0.4,  0. ,  0.5,  0. ,  0. ]])
+                      
+        # Suppy table V und use table U, both square, with byproducts, for testing the psc/btc construct              
+        self.V_Test_byprod = np.array([[30, 1, 1, 1, 0],
+                                       [1, 5, 1, 0, 0],
+                                       [2, 0, 3, 1, 0],
+                                       [0, 0, 1, 2, 0],
+                                       [0, 0, 0, 0, 8]])
+        
+        self.U_Test_byprod = np.array([[12, 4, 5, 1, 0],
+                                       [1, 1, 1, 0, 0],
+                                       [0, 1, 1, 1, 0],
+                                       [1, 0, 0, 0, 0],
+                                       [0, 1, 1, 1, 0]])                      
 
     def test_V_bar_tilde(self):
 
@@ -513,13 +529,37 @@ class TestAllocationsConstructs(unittest.TestCase):
                        [0.        ,  0.25      ,  0.        ]])
 
         sut = SupplyUseTable(U=self.Uu, V=self.V, E_bar=self.E_bar, Xi=self.Xi, F=self.F)
-        A, S, __, __, Z, F_con = sut.psc_agg(keep_size=False)
+        A, __, __, S, __, __, Z, F_con = sut.psc_agg(keep_size=False)
 
         npt.assert_allclose(A0, A, atol=self.atol)
         npt.assert_allclose(S0, S, atol=self.atol)
         npt.assert_allclose(np.empty(0), Z, atol=self.atol)
         npt.assert_allclose(np.empty(0), F_con, atol=self.atol)
+        
+    def test_psc_agg_byprod(self):
+        """ Tests whether by-products are returned correctly for the Product Substition Construct on SuUT"""
 
+        AmRef = np.array([[0.4,	0.8,	1.666666667,	0.5,	0],
+                          [0.033333333,	0.2,	0.333333333,	0,	0],
+                          [0,	0.2,	0.333333333,	0.5,	0],
+                          [0.033333333,	0,	0,	0,	0],
+                          [0,	0.2,	0.333333333,	0.5,	0]])
+ 
+        AbRef = np.array([[0,	0.2,	0.333333333,	0.5,	0],
+                          [0.033333333,	0,	0.333333333,	0,	0],
+                          [0.066666667,	0,	0,	0.5,	0],
+                          [0,	0,	0.333333333,	0,	0],
+                          [0,	0,	0,	0,	0]])
+        
+
+        sut = SupplyUseTable(U=self.U_Test_byprod, V=self.V_Test_byprod)
+        sut.build_E_bar() # is unit matrix with the given example
+        sut.build_mr_Xi() # is unit matrix with the given example
+        A, Am, Ab, __, __, __, Z, F_con = sut.psc_agg(keep_size=False)
+
+        npt.assert_allclose(A, AmRef-AbRef, atol=self.atol)
+        npt.assert_allclose(Am, AmRef, atol=self.atol)
+        npt.assert_allclose(Ab, AbRef, atol=self.atol)
 
     def test_partition_coefficients(self):
         """ Test calculation of PA coeff. (PHI) from intensive properties (PSI)
@@ -651,7 +691,7 @@ class TestAllocationsConstructs(unittest.TestCase):
         sut.build_E_bar()
         sut.build_mr_Xi()
 
-        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_flows=True)
+        A, __, __, S, nn_in, nn_out, Z, F = sut.psc_agg(return_flows=True)
         # Ca_j production (secondary to Ca_i) displaces No_j
         # Us_k production (secondary to US_i) displaces US_k
         Z0 = np.array([[ 0. ,  0. ,  0.1,  0. ,  0.5,  0. ,  0. ,  0. ,  0. ],
@@ -676,7 +716,7 @@ class TestAllocationsConstructs(unittest.TestCase):
                   regions=3)
 
         sut.build_mr_Xi()
-        A, S, nn_in, nn_out, Z, F = sut.psc_agg(return_flows=True)
+        A, __, __, S, nn_in, nn_out, Z, F = sut.psc_agg(return_flows=True)
         npt.assert_allclose(self.Z_3r2i3p, Z, atol=self.atol)
 
 
@@ -945,5 +985,5 @@ class TestAllocationsConstructs(unittest.TestCase):
         npt.assert_allclose(np.empty(0), Z, atol=self.atol)
         npt.assert_allclose(np.empty(0), F_con, atol=self.atol)
 
-    if __name__ == '__main__':
-        unittest.main()
+#    if __name__ == '__main__':
+#        unittest.main()

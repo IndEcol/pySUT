@@ -1,2 +1,3 @@
 v<0.1.0>, <2014-07-23> -- Initial release.
 v<1.0.0>, <2014-12-03> -- First proper release with proper setup routine, standardized nomenclature, updated and extended functionality, and updated tutorial.
+v<1.1>, <2015-05-09> -- Updated proper release.
