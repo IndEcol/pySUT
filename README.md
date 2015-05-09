@@ -5,8 +5,7 @@ Python class for efficient handling of supply and use tables (SUTs)
 
 Created on Mon Jun 30 17:21:28 2014
 
-@author: stefan pauliuk, NTNU Trondheim, Norway <br>
-with major contributions from Guillaume Majeau-Bettez, NTNU <br>
+@author: stefan pauliuk and Guillaume Majeau-Bettez, NTNU Trondheim, Norway <br>
 with contributions from <br>
 Konstantin Stadler, NTNU, Trondheim, Norway<br>
 Chris Mutel, PSI, Villingen, CH <br>
@@ -19,8 +18,7 @@ scipy<br>
 <b>Tutorial:</b><br>
 http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb
 <b>Documenation of all methods and functions:</b><br>
-https://github.com/stefanpauliuk/pySUT/tree/master/Doc/pysut.html
-<br>
+http://htmlpreview.github.com/?https://github.com/stefanpauliuk/pySUT/blob/master/Doc/pysut.html
 <br>
 
 <b> Below, a quick installation guide and a link to the tutorial are provided:</b><br><br>
