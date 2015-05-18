@@ -10,9 +10,11 @@ with contributions from <br>
 Konstantin Stadler, NTNU, Trondheim, Norway<br>
 Chris Mutel, PSI, Villingen, CH <br>
 
-Dependencies: <br>
-numpy<br>
-scipy<br>
+<b>Dependencies:</b> <br>
+sys (3.4.1)<br>
+numpy 1.9.0<br>
+scipy 0.14.0<br>
+logging 0.5.1.2 <br>
 
 <br>
 <b>Tutorial:</b><br>
