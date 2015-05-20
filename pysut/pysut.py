@@ -14,11 +14,8 @@ Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 standard abbreviation: SUT
 
 dependencies:
-    sys (3.4.1)
-    numpy 1.9.0
-    scipy 0.14.0
-    logging 0.5.1.2 
-
+    numpy >= 1.9
+    scipy >= 0.14
 
 Repository for this class, documentation, and tutorials: https://github.com/stefanpauliuk/pySUT
 
