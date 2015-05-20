@@ -1,5 +1,4 @@
 include *.txt
 include README.md
-include LICENSE
 include pysut/tests/*.py
 include pysut/*.py
