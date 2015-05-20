@@ -24,15 +24,11 @@ Repository for this class, documentation, and tutorials: https://github.com/stef
 
 """
 
-import sys
+from __future__ import division, print_function
 import logging
 import numpy as np
 from scipy import sparse as sp
 from scipy.sparse import linalg as sl
-
-# check for correct version number of Python
-if sys.version_info.major < 3:
-    logging.warning('This package requires Python 3.0 or higher.')
 
 
 class SupplyUseTable(object):
