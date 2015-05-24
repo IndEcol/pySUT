@@ -23,7 +23,13 @@ http://htmlpreview.github.com/?https://github.com/stefanpauliuk/pySUT/blob/maste
 
 <b> Below, a quick installation guide and a link to the tutorial are provided:</b><br><br>
 
-<b>a) Installation as package:</b> <br>
+
+<b>a) Installation from the web repository:</b> <br>
+This is the easiest way of installing pySUT. Github hosts an installation package for pySUT, which can be downloaded directly from the command line using pip: <br>
+
+> pip install pySUT
+
+<b>b) Installation as package:</b> <br>
 Pull package via git pull or download as .zip file and unpack. Choose a convenient location (Here: 'C:\MyPythonPackages\'). Then open a console, change to the directory ../pySUT-master/, and install the package from the command line: <br>
 > python setup.py install 
 
@@ -45,7 +51,7 @@ Or, to run a specific test
 > unittest.main(pydsm.tests.test_allocations_constructs, verbosity=2)
 
 <br>
-<b>b) Manual installation, by modifying the python path</b><br>
+<b>c) Manual installation, by modifying the python path</b><br>
 Pull package via git pull or download as .zip file and unpack. Choose a convenient location (Here: 'C:\MyPythonPackages\'). Then include in your code the following lines <br>
 > import sys 
 

@@ -1,4 +1,5 @@
-from setuptools import setup
+# from setuptools import setup
+from distutils.core import setup
 
 setup(
     name='pysut',
@@ -11,8 +12,10 @@ setup(
     install_requires=["numpy","scipy"],
     long_description=open('README.md').read(),
     url="https://github.com/stefanpauliuk/pySUT",
-    classifiers=[
-        'Development Status :: 4 - Beta',
+    download_url = "https://github.com/stefanpauliuk/pySUT/tarball/1.1",
+    keywords = ['supply use table','SUT','Input-Output','Leontief'],
+    classifiers=[        
+	'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
@@ -22,6 +25,6 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Information Analysis',
-        'Topic :: Scientific/Engineering :: Mathematics'
-    ],
+        'Topic :: Scientific/Engineering :: Mathematics',
+	],
 )
