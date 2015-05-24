@@ -5,7 +5,7 @@ Created on Mon Aug 11 16:19:39 2014
 @author: Stefan Pauliuk, NTNU
 Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 """
-
+from __future__ import division
 from .. import SupplyUseTable # remove and import the class manually if this unit test is run as standalone script
 from .. import pysut # remove and import the class manually if this unit test is run as standalone script
 import numpy as np

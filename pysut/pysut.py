@@ -14,25 +14,18 @@ Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 standard abbreviation: SUT
 
 dependencies:
-    sys (3.4.1)
-    numpy 1.9.0
-    scipy 0.14.0
-    logging 0.5.1.2 
-
+    numpy >= 1.9
+    scipy >= 0.14
 
 Repository for this class, documentation, and tutorials: https://github.com/stefanpauliuk/pySUT
 
 """
 
-import sys
+from __future__ import division, print_function
 import logging
 import numpy as np
 from scipy import sparse as sp
 from scipy.sparse import linalg as sl
-
-# check for correct version number of Python
-if sys.version_info.major < 3:
-    logging.warning('This package requires Python 3.0 or higher.')
 
 
 class SupplyUseTable(object):
