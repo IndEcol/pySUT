@@ -16,7 +16,7 @@ scipy >= 0.14<br>
 
 <br>
 <b>Tutorial:</b><br>
-https://github.com/cmutel/pySUT/blob/master/Doc/pySUT_Documentation.ipynb <br>
+http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb <br>
 <b>Documenation of all methods and functions:</b><br>
 http://htmlpreview.github.com/?https://github.com/stefanpauliuk/pySUT/blob/master/Doc/pysut.html
 <br>
