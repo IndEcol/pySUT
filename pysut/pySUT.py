@@ -11,6 +11,8 @@ Created on Mon Jun 30 17:21:28 2014
 @author: stefan pauliuk, NTNU Trondheim, Norway
 Guillaume Majeau-Bettez, NTNU Trondheim, Norway
 
+Checked for python 2.7 compatibility by Chris Mutel, PSI, Villingen, CH
+
 standard abbreviation: SUT
 
 dependencies:
