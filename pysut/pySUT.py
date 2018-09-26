@@ -386,9 +386,10 @@ class SupplyUseTable(object):
 
     def aggregate_rearrange_products(self, PA, PR):
         """ multiplies an aggregation matrix PA from the left to V, U, and Y, rearranges the rows in columns of V, U, and Y according to the sorting matrix PR
-        Equations: X_aggregated = PA * X, where X = U, V, or Y (and also TL)
-        X_new = PR * X_aggregated * PR', where X = U, V
-        Y_new = PR * Y_aggregated (and also TL)
+        Equations: 
+        X_aggregated = PA * X, where X = U, V, or Y (and also TL)
+        X_rearranged = PR * X_aggregated * PR', where X = U, V
+        Y_rearranged = PR * Y_aggregated (and also TL)
         """
         self.V = np.dot(PR, np.dot(np.dot(PA, self.V), PR.transpose()))
         self.U = np.dot(PR, np.dot(np.dot(PA, self.U), PR.transpose()))
@@ -401,6 +402,39 @@ class SupplyUseTable(object):
             self.TL = np.dot(PR, np.dot(PA, self.TL))
 
         return 'Products were aggregated. Products and industries were resorted successfully.'
+
+    def aggregate_products(self, PA):
+        """ multiplies an aggregation matrix PA from the left to V, U, and Y
+        Equations: 
+        X_aggregated = PA * X, where X = U, V, or Y (and also TL)
+        """
+        self.V = np.dot(PA, self.V)
+        self.U = np.dot(PA, self.U)
+        if self.Y is not None:
+            self.Y = np.dot(PA, self.Y)
+        # No changes apply to F and FY
+        if self.TL is not None:
+            self.TL = np.dot(PA, self.TL)
+
+        return 'Products were aggregated.'
+
+    def rearrange_products(self, PR):
+        """ rearranges the rows in columns of V, U, and Y according to the sorting matrix PR
+        Equations:
+        X_rearranged = PR * X * PR', where X = U, V
+        Y_rearranged = PR * Y (and also TL)
+        """
+        self.V = np.dot(PR, np.dot(self.V, PR.transpose()))
+        self.U = np.dot(PR, np.dot(self.U, PR.transpose()))
+        if self.Y is not None:
+            self.Y = np.dot(PR, self.Y)
+        if self.F is not None:
+            self.F = np.dot(self.F, PR.transpose())
+        # No changes apply to FY
+        if self.TL is not None:
+            self.TL = np.dot(PR, self.TL)
+
+        return 'Products and industries were resorted successfully.'
 
     def aggregate_regions(self, AV):
         """ This method aggregates the supply and use table. The length of the vector AV sais how many regions there are in the model. The total number of products and industries must be a multiple of that number, else, an error is given.
