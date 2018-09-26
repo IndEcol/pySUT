@@ -1,5 +1,4 @@
-# from setuptools import setup
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='pysut',
@@ -14,7 +13,7 @@ setup(
     url="https://github.com/stefanpauliuk/pySUT",
     download_url = "https://github.com/stefanpauliuk/pySUT/tarball/1.1",
     keywords = ['supply use table','SUT','Input-Output','Leontief'],
-    classifiers=[        
+    classifiers=[
 	'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
