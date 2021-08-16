@@ -1,6 +1,20 @@
 pySUT
 =====
 
+NOTE
+-----
+
+You are currently on the branch "numpy_based_core".
+This is the parking lot for previous development efforts from 2014-2018.
+
+The new Pandas centric development are happening on all other branches in this 
+repo.
+
+
+Original readme
+---------------
+
+
 Python class for efficient handling of supply and use tables (SUTs)
 
 Created on Mon Jun 30 17:21:28 2014
