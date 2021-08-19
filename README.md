@@ -1,62 +1,29 @@
-pySUT
-=====
+# pySUT - a new start
+
 
 Python class for efficient handling of supply and use tables (SUTs)
 
-Created on Mon Jun 30 17:21:28 2014
+This is currently under active development - stay tuned!
 
-@author: stefan pauliuk and Guillaume Majeau-Bettez, NTNU Trondheim, Norway <br>
-with contributions from <br>
-Konstantin Stadler, NTNU, Trondheim, Norway<br>
-Chris Mutel, PSI, Villingen, CH <br>
-
-<b>Dependencies:</b> <br>
-numpy >= 1.9<br>
-scipy >= 0.14<br>
-
-<br>
-<b>Tutorial:</b><br>
-http://nbviewer.ipython.org/github/stefanpauliuk/pySUT/blob/master/Doc/pySUT_Documentation.ipynb <br>
-<b>Documenation of all methods and functions:</b><br>
-http://htmlpreview.github.com/?https://github.com/stefanpauliuk/pySUT/blob/master/Doc/pysut.html
-<br>
-
-<b> Below, a quick installation guide and a link to the tutorial are provided:</b><br><br>
+## A new start
 
 
-<b>a) Installation from the web repository:</b> <br>
-This is the easiest way of installing pySUT. Github hosts an installation package for pySUT, which can be downloaded directly from the command line using pip: <br>
+This is a new beginning of the project.
 
-> pip install pySUT
+The previous (2014-2018), numpy based version are archived at the branch "numpy_based_core".
 
-<b>b) Installation as package:</b> <br>
-Pull package via git pull or download as .zip file and unpack. Choose a convenient location (Here: 'C:\MyPythonPackages\'). Then open a console, change to the directory ../pySUT-master/, and install the package from the command line: <br>
-> python setup.py install 
+## Development plans:
 
-This makes the package available to Python. At any other place in a system with the same python installation, pydsm is now ready to be imported simply by <br>
-> import pysut
+These are currently [discussed in an issue thread
+here](https://github.com/IndEcol/pySUT/issues/10#issue-971800311)
 
-This setup also allows us to run the unit test: <br>
+General consensus so far:
 
-> import unittest
+- Pandas based
+- Class for SUT gathering Use and Supply
+- Class can handle coefficients or flows
 
-> import pysut
+## Documentation
 
-> import pysut.tests
-
-> unittest.main(pysut.tests, verbosity=2)
-
-Or, to run a specific test
-
-> unittest.main(pydsm.tests.test_allocations_constructs, verbosity=2)
-
-<br>
-<b>c) Manual installation, by modifying the python path</b><br>
-Pull package via git pull or download as .zip file and unpack. Choose a convenient location (Here: 'C:\MyPythonPackages\'). Then include in your code the following lines <br>
-> import sys 
-
-> sys.path.append('C:\\MyPythonPackages\\pySUT-master\\pydsm\\') 
-
-> from pysut import SupplyUseTable
-
-
+We keep the documentation in the readme, issues and docstrings for now. Later on we 
+will setup mkdocs for some github pages documentation.

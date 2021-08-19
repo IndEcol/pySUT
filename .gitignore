@@ -1,4 +1,34 @@
-*.pyc
-__pycache__
-dist
-pysut.egg-info
+# Root .gitignore
+
+# folders and files which are not that important or can be reproduced easily
+/**/__pycache__/
+Session.vim
+# binary files
+#*.xls
+#*.xlsx
+#*.mat
+#*.pdf
+#*.db
+#*.jpg
+#*.png
+#*.gif
+#*.pyc
+#
+.~lock.*
+.tags
+Session.vim
+/.cache/
+/dist/
+/pymrio.egg-info/
+/**/build/
+/__pycache__
+/tests/__pycache__/
+/.cache
+/.idea
+/**/.ipynb_checkpoints/
+tags
+
+# Coverage stuff
+.coverage
+/htmlcov
+/**/htmlcov
